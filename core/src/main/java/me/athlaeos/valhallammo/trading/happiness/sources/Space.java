@@ -56,23 +56,23 @@ public class Space implements HappinessSource, Listener {
         Block oneAbove = b.getLocation().add(0, 1, 0).getBlock();
         Block twoAbove = b.getLocation().add(0, 2, 0).getBlock();
         Block threeAbove = b.getLocation().add(0, 3, 0).getBlock();
-        if ((oneAbove.getType().isAir() || !oneAbove.getType().isOccluding()) && (twoAbove.getType().isAir() || !twoAbove.getType().isOccluding()) &&
-                (threeAbove.getType().isAir() || !threeAbove.getType().isOccluding())) return true;
+        if ((oneAbove.getType().isAir() || !oneAbove.getType().isSolid()) && (twoAbove.getType().isAir() || !twoAbove.getType().isOccluding()) &&
+                (threeAbove.getType().isAir() || !threeAbove.getType().isSolid())) return true;
         if (oneAbove.getType().toString().endsWith("_DOOR") && oneAbove.getType() != Material.IRON_DOOR) {
             // for regular doors, a passage needs to be free through it
             Block north1 = oneAbove.getRelative(BlockFace.NORTH);
             Block south1 = oneAbove.getRelative(BlockFace.SOUTH);
-            if ((north1.getType().isAir() || !north1.getType().isOccluding()) && (south1.getType().isAir() || !south1.getType().isOccluding())) {
+            if ((north1.getType().isAir() || !north1.getType().isSolid()) && (south1.getType().isAir() || !south1.getType().isOccluding())) {
                 Block north2 = twoAbove.getRelative(BlockFace.NORTH);
                 Block south2 = twoAbove.getRelative(BlockFace.SOUTH);
-                return (north2.getType().isAir() || !north2.getType().isOccluding()) && (south2.getType().isAir() || !south2.getType().isOccluding());
+                return (north2.getType().isAir() || !north2.getType().isSolid()) && (south2.getType().isAir() || !south2.getType().isOccluding());
             }
             Block east1 = oneAbove.getRelative(BlockFace.EAST);
             Block west1 = oneAbove.getRelative(BlockFace.WEST);
-            if ((east1.getType().isAir() || !east1.getType().isOccluding()) && (west1.getType().isAir() || !west1.getType().isOccluding())) {
+            if ((east1.getType().isAir() || !east1.getType().isSolid()) && (west1.getType().isAir() || !west1.getType().isOccluding())) {
                 Block east2 = twoAbove.getRelative(BlockFace.EAST);
                 Block west2 = twoAbove.getRelative(BlockFace.WEST);
-                return (east2.getType().isAir() || !east2.getType().isOccluding()) && (west2.getType().isAir() || !west2.getType().isOccluding());
+                return (east2.getType().isAir() || !east2.getType().isSolid()) && (west2.getType().isAir() || !west2.getType().isOccluding());
             }
         } else if (oneAbove.getType().toString().contains("_FENCE") || oneAbove.getType().toString().contains("_WALL")) return false;
         return false;
@@ -81,6 +81,7 @@ public class Space implements HappinessSource, Listener {
     @Override
     public float get(Player contextPlayer, Entity entity) {
         if (happinessCache.containsKey(entity.getUniqueId())) return happinessCache.get(entity.getUniqueId());
+        if (entity.getVehicle() != null) return imprisonedHappiness;
         Block below = entity.getLocation().getBlock().getRelative(BlockFace.DOWN);
         if (!isFreeBlock(below)) return imprisonedHappiness;
         Collection<Block> vein = BlockUtils.getBlockVein(below, freeSpace + 1, this::isFreeBlock, freedomScanArea);
