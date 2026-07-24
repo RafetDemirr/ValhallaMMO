@@ -70,6 +70,7 @@ public class CrafterCraftListener implements Listener {
             }
         }
     }
+
     private ItemStack verifyIngredients(DynamicGridRecipe recipe, ItemStack[] matrix){
         ItemBuilder result = new ItemBuilder(recipe.getResult().clone());
         if (!recipe.isUnlockedForEveryone()) return null;

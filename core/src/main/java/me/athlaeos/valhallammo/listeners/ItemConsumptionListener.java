@@ -1,6 +1,7 @@
 package me.athlaeos.valhallammo.listeners;
 
 import me.athlaeos.valhallammo.ValhallaMMO;
+import me.athlaeos.valhallammo.event.EntityCustomPotionEffectEvent;
 import me.athlaeos.valhallammo.item.FoodClass;
 import me.athlaeos.valhallammo.item.FoodPropertyManager;
 import me.athlaeos.valhallammo.playerstats.AccumulativeStatManager;
@@ -120,6 +121,16 @@ public class ItemConsumptionListener implements Listener {
             PowerProfile profile = ProfileCache.getOrCache(p, PowerProfile.class);
             if (cancelNextFoodEffects.contains(e.getEntity().getUniqueId())) e.setCancelled(true);
             else if (e.getNewEffect() != null && profile.isBadFoodImmune() && EffectClass.getClass(e.getNewEffect().getType()) == EffectClass.DEBUFF) e.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onFoodPotionEffect(EntityCustomPotionEffectEvent e){
+        if (ValhallaMMO.isWorldBlacklisted(e.getEntity().getWorld().getName()) || !(e.getEntity() instanceof Player p)) return;
+        if (e.getCause() == EntityPotionEffectEvent.Cause.FOOD) {
+            PowerProfile profile = ProfileCache.getOrCache(p, PowerProfile.class);
+            if (cancelNextFoodEffects.contains(e.getEntity().getUniqueId())) e.setCancelled(true);
+            else if (e.getNewEffect() != null && profile.isBadFoodImmune() && e.getNewEffect().getWrapper().getClassification(e.getNewEffect().getAmplifier()) == EffectClass.DEBUFF) e.setCancelled(true);
         }
     }
 }

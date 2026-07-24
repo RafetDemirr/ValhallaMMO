@@ -81,6 +81,7 @@ public class BiomeFilter extends LootPredicate {
     @Override
     public boolean test(LootContext context) {
         Block b = context.getLocation().getBlock();
+        System.out.println("current biome is " + b.getBiome().getKey() + " compared to " + String.join(", ", biomes.stream().map(NamespacedKey::toString).toList()));
         return biomes.contains(b.getBiome().getKey()) != inverted;
     }
 

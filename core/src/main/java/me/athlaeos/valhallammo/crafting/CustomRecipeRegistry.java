@@ -76,12 +76,25 @@ public class CustomRecipeRegistry {
         loadCookingRecipes(new File(ValhallaMMO.getInstance().getDataFolder(), "/recipes/cooking_recipes.json"), false);
         for (MinecraftVersion version : MinecraftVersion.values()){
             if (!MinecraftVersion.currentVersionNewerThan(version) || version.getVersionString() == null) continue;
-            loadBrewingRecipes(new File(ValhallaMMO.getInstance().getDataFolder(), "/recipes/brewing_recipes_" + version.getVersionString() + "+.json"), false);
-            loadGridRecipes(new File(ValhallaMMO.getInstance().getDataFolder(), "/recipes/grid_recipes_" + version.getVersionString() + "+.json"), false);
-            loadSmithingRecipes(new File(ValhallaMMO.getInstance().getDataFolder(), "/recipes/smithing_recipes_" + version.getVersionString() + "+.json"), false);
-            loadImmersiveRecipes(new File(ValhallaMMO.getInstance().getDataFolder(), "/recipes/immersive_recipes_" + version.getVersionString() + "+.json"), false);
-            loadCauldronRecipes(new File(ValhallaMMO.getInstance().getDataFolder(), "/recipes/cauldron_recipes_" + version.getVersionString() + "+.json"), false);
-            loadCookingRecipes(new File(ValhallaMMO.getInstance().getDataFolder(), "/recipes/cooking_recipes_" + version.getVersionString() + "+.json"), false);
+            // whenever a special-versioned file is loaded, it should be emptied. this is such that these recipes can be deleted without them coming back, since the special version file is not updated
+            if (loadBrewingRecipes(new File(ValhallaMMO.getInstance().getDataFolder(), "/recipes/brewing_recipes_" + version.getVersionString() + "+.json"), false)){
+                brewingRecipePersistence.saveRecipesToFile("/recipes/brewing_recipes_" + version.getVersionString() + "+.json", new HashSet<>());
+            }
+            if (loadGridRecipes(new File(ValhallaMMO.getInstance().getDataFolder(), "/recipes/grid_recipes_" + version.getVersionString() + "+.json"), false)){
+                gridRecipePersistence.saveRecipesToFile("/recipes/grid_recipes_" + version.getVersionString() + "+.json", gridRecipes.values());
+            }
+            if (loadSmithingRecipes(new File(ValhallaMMO.getInstance().getDataFolder(), "/recipes/smithing_recipes_" + version.getVersionString() + "+.json"), false)){
+                smithingRecipePersistence.saveRecipesToFile("/recipes/smithing_recipes_" + version.getVersionString() + "+.json", new HashSet<>());
+            }
+            if (loadImmersiveRecipes(new File(ValhallaMMO.getInstance().getDataFolder(), "/recipes/immersive_recipes_" + version.getVersionString() + "+.json"), false)){
+                immersiveRecipePersistence.saveRecipesToFile("/recipes/immersive_recipes_" + version.getVersionString() + "+.json", new HashSet<>());
+            }
+            if (loadCauldronRecipes(new File(ValhallaMMO.getInstance().getDataFolder(), "/recipes/cauldron_recipes_" + version.getVersionString() + "+.json"), false)){
+                cauldronRecipePersistence.saveRecipesToFile("/recipes/cauldron_recipes_" + version.getVersionString() + "+.json", new HashSet<>());
+            }
+            if (loadCookingRecipes(new File(ValhallaMMO.getInstance().getDataFolder(), "/recipes/cooking_recipes_" + version.getVersionString() + "+.json"), false)){
+                cookingRecipePersistence.saveRecipesToFile("/recipes/cooking_recipes_" + version.getVersionString() + "+.json", new HashSet<>());
+            }
         }
 
         YamlConfiguration disabled = ConfigManager.getConfig("recipes/disabled_recipes.yml").reload().get();
@@ -133,59 +146,65 @@ public class CustomRecipeRegistry {
         ConfigManager.saveConfig("recipes/disabled_recipes.yml");
     }
 
-    public static void loadBrewingRecipes(File file, boolean overwrite){
-        if (!file.exists()) return;
+    public static boolean loadBrewingRecipes(File file, boolean overwrite){
+        if (!file.exists()) return false;
         ValhallaMMO.logInfo("Loading brewing recipes from " + file.getPath());
         ValhallaMMO.getInstance().getServer().getScheduler().runTaskAsynchronously(ValhallaMMO.getInstance(), () ->
                 brewingRecipePersistence.getRecipesFromFile(file).forEach((k, r) ->
                     ValhallaMMO.getInstance().getServer().getScheduler().runTask(ValhallaMMO.getInstance(), () -> register((DynamicBrewingRecipe) r, overwrite))
                 )
         );
+        return true;
     }
-    public static void loadCauldronRecipes(File file, boolean overwrite){
-        if (!file.exists()) return;
+    public static boolean loadCauldronRecipes(File file, boolean overwrite){
+        if (!file.exists()) return false;
         ValhallaMMO.logInfo("Loading cauldron recipes from " + file.getPath());
         ValhallaMMO.getInstance().getServer().getScheduler().runTaskAsynchronously(ValhallaMMO.getInstance(), () ->
                 cauldronRecipePersistence.getRecipesFromFile(file).forEach((k, r) ->
                         ValhallaMMO.getInstance().getServer().getScheduler().runTask(ValhallaMMO.getInstance(), () -> register((DynamicCauldronRecipe) r, overwrite))
                 )
         );
+        return true;
     }
-    public static void loadCookingRecipes(File file, boolean overwrite){
-        if (!file.exists()) return;
+    public static boolean loadCookingRecipes(File file, boolean overwrite){
+        if (!file.exists()) return false;
         ValhallaMMO.logInfo("Loading cooking recipes from " + file.getPath());
         ValhallaMMO.getInstance().getServer().getScheduler().runTaskAsynchronously(ValhallaMMO.getInstance(), () ->
                 cookingRecipePersistence.getRecipesFromFile(file).forEach((k, r) ->
                         ValhallaMMO.getInstance().getServer().getScheduler().runTask(ValhallaMMO.getInstance(), () -> register((DynamicCookingRecipe) r, overwrite))
                 )
         );
+         return true;
     }
-    public static void loadGridRecipes(File file, boolean overwrite){
-        if (!file.exists()) return;
+    public static boolean loadGridRecipes(File file, boolean overwrite){
+        if (!file.exists()) return false;
         ValhallaMMO.logInfo("Loading crafting grid recipes from " + file.getPath());
         ValhallaMMO.getInstance().getServer().getScheduler().runTaskAsynchronously(ValhallaMMO.getInstance(), () ->
                 gridRecipePersistence.getRecipesFromFile(file).forEach((k, r) ->
                         ValhallaMMO.getInstance().getServer().getScheduler().runTask(ValhallaMMO.getInstance(), () -> register((DynamicGridRecipe) r, overwrite))
                 )
         );
+        return true;
     }
-    public static void loadSmithingRecipes(File file, boolean overwrite){
-        if (!file.exists()) return;
+    public static boolean loadSmithingRecipes(File file, boolean overwrite){
+        if (!file.exists()) return false;
         ValhallaMMO.logInfo("Loading smithing recipes from " + file.getPath());
         ValhallaMMO.getInstance().getServer().getScheduler().runTaskAsynchronously(ValhallaMMO.getInstance(), () ->
                 smithingRecipePersistence.getRecipesFromFile(file).forEach((k, r) ->
                         ValhallaMMO.getInstance().getServer().getScheduler().runTask(ValhallaMMO.getInstance(), () -> register((DynamicSmithingRecipe) r, overwrite))
                 )
         );
+        return true;
     }
-    public static void loadImmersiveRecipes(File file, boolean overwrite){
-        if (!file.exists()) return;
+    public static boolean loadImmersiveRecipes(File file, boolean overwrite){
+        if (!file.exists()) return false;
         ValhallaMMO.logInfo("Loading immersive recipes from " + file.getPath());
         ValhallaMMO.getInstance().getServer().getScheduler().runTaskAsynchronously(ValhallaMMO.getInstance(), () ->
                 immersiveRecipePersistence.getRecipesFromFile(file).forEach((k, r) ->
                         ValhallaMMO.getInstance().getServer().getScheduler().runTask(ValhallaMMO.getInstance(), () -> register((ImmersiveCraftingRecipe) r, overwrite))
                 )
         );
+        return true;
     }
 
     private static void addRecipePermission(String recipeName){
