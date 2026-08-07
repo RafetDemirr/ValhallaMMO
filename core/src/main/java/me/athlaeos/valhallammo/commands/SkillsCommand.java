@@ -76,10 +76,10 @@ public class SkillsCommand implements TabExecutor {
 	public @Nullable List<String> onTabComplete(@NonNull CommandSender commandSender, @NonNull Command command, @NonNull String s, @NonNull String[] args) {
 		if (args.length == 1){
 			List<String> suggestions = new ArrayList<>(List.of("<player_or_skill>"));
-			suggestions.addAll(SkillRegistry.getAllSkills().values().stream().map(Skill::getType).map(String::toLowerCase).toList());
+			suggestions.addAll(SkillRegistry.getAllSkillsByType().values().stream().map(Skill::getType).map(String::toLowerCase).toList());
 			return suggestions;
 		}
-		if (args.length == 2) return SkillRegistry.getAllSkills().values().stream().map(Skill::getType).map(String::toLowerCase).collect(Collectors.toList());
+		if (args.length == 2) return SkillRegistry.getAllSkillsByType().values().stream().map(Skill::getType).map(String::toLowerCase).collect(Collectors.toList());
 		return null;
 	}
 }

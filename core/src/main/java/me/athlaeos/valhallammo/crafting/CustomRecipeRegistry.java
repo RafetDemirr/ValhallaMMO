@@ -78,22 +78,34 @@ public class CustomRecipeRegistry {
             if (!MinecraftVersion.currentVersionNewerThan(version) || version.getVersionString() == null) continue;
             // whenever a special-versioned file is loaded, it should be emptied. this is such that these recipes can be deleted without them coming back, since the special version file is not updated
             if (loadBrewingRecipes(new File(ValhallaMMO.getInstance().getDataFolder(), "/recipes/brewing_recipes_" + version.getVersionString() + "+.json"), false)){
-                brewingRecipePersistence.saveRecipesToFile("/recipes/brewing_recipes_" + version.getVersionString() + "+.json", new HashSet<>());
+                ValhallaMMO.getInstance().getServer().getScheduler().runTaskLater(ValhallaMMO.getInstance(), () ->
+                        brewingRecipePersistence.saveRecipesToFile("/recipes/brewing_recipes_" + version.getVersionString() + "+.json", new HashSet<>()),
+                        100L);
             }
             if (loadGridRecipes(new File(ValhallaMMO.getInstance().getDataFolder(), "/recipes/grid_recipes_" + version.getVersionString() + "+.json"), false)){
-                gridRecipePersistence.saveRecipesToFile("/recipes/grid_recipes_" + version.getVersionString() + "+.json", gridRecipes.values());
+                ValhallaMMO.getInstance().getServer().getScheduler().runTaskLater(ValhallaMMO.getInstance(), () ->
+                gridRecipePersistence.saveRecipesToFile("/recipes/grid_recipes_" + version.getVersionString() + "+.json", gridRecipes.values()),
+                        100L);
             }
             if (loadSmithingRecipes(new File(ValhallaMMO.getInstance().getDataFolder(), "/recipes/smithing_recipes_" + version.getVersionString() + "+.json"), false)){
-                smithingRecipePersistence.saveRecipesToFile("/recipes/smithing_recipes_" + version.getVersionString() + "+.json", new HashSet<>());
+                ValhallaMMO.getInstance().getServer().getScheduler().runTaskLater(ValhallaMMO.getInstance(), () ->
+                smithingRecipePersistence.saveRecipesToFile("/recipes/smithing_recipes_" + version.getVersionString() + "+.json", new HashSet<>()),
+                        100L);
             }
             if (loadImmersiveRecipes(new File(ValhallaMMO.getInstance().getDataFolder(), "/recipes/immersive_recipes_" + version.getVersionString() + "+.json"), false)){
-                immersiveRecipePersistence.saveRecipesToFile("/recipes/immersive_recipes_" + version.getVersionString() + "+.json", new HashSet<>());
+                ValhallaMMO.getInstance().getServer().getScheduler().runTaskLater(ValhallaMMO.getInstance(), () ->
+                immersiveRecipePersistence.saveRecipesToFile("/recipes/immersive_recipes_" + version.getVersionString() + "+.json", new HashSet<>()),
+                        100L);
             }
             if (loadCauldronRecipes(new File(ValhallaMMO.getInstance().getDataFolder(), "/recipes/cauldron_recipes_" + version.getVersionString() + "+.json"), false)){
-                cauldronRecipePersistence.saveRecipesToFile("/recipes/cauldron_recipes_" + version.getVersionString() + "+.json", new HashSet<>());
+                ValhallaMMO.getInstance().getServer().getScheduler().runTaskLater(ValhallaMMO.getInstance(), () ->
+                        cauldronRecipePersistence.saveRecipesToFile("/recipes/cauldron_recipes_" + version.getVersionString() + "+.json", new HashSet<>()),
+                        100L);
             }
             if (loadCookingRecipes(new File(ValhallaMMO.getInstance().getDataFolder(), "/recipes/cooking_recipes_" + version.getVersionString() + "+.json"), false)){
-                cookingRecipePersistence.saveRecipesToFile("/recipes/cooking_recipes_" + version.getVersionString() + "+.json", new HashSet<>());
+                ValhallaMMO.getInstance().getServer().getScheduler().runTaskLater(ValhallaMMO.getInstance(), () ->
+                        cookingRecipePersistence.saveRecipesToFile("/recipes/cooking_recipes_" + version.getVersionString() + "+.json", new HashSet<>()),
+                        100L);
             }
         }
 

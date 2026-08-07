@@ -2,12 +2,14 @@ package me.athlaeos.valhallammo.playerstats.profiles;
 
 import me.athlaeos.valhallammo.ValhallaMMO;
 import me.athlaeos.valhallammo.playerstats.format.StatFormat;
-import me.athlaeos.valhallammo.playerstats.profiles.properties.PropertyBuilder;
+import me.athlaeos.valhallammo.playerstats.profiles.implementations.ConfigurableProfile;
 import me.athlaeos.valhallammo.playerstats.profiles.properties.BooleanProperties;
+import me.athlaeos.valhallammo.playerstats.profiles.properties.PropertyBuilder;
 import me.athlaeos.valhallammo.playerstats.profiles.properties.StatProperties;
 import me.athlaeos.valhallammo.skills.perk_rewards.PerkRewardRegistry;
 import me.athlaeos.valhallammo.skills.perk_rewards.implementations.*;
 import me.athlaeos.valhallammo.skills.skills.Skill;
+import me.athlaeos.valhallammo.skills.skills.SkillRegistry;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 
@@ -95,6 +97,11 @@ public abstract class Profile {
     }
 
     public abstract Class<? extends Skill> getSkillType();
+
+    public String getSkillTypeName(){
+        Skill skill = SkillRegistry.getSkill(getSkillType());
+        return skill == null ? "DisabledSkill" : skill.getType();
+    }
 
     public Collection<String> getInts() {
         return ints.keySet();
@@ -253,9 +260,9 @@ public abstract class Profile {
      * Registers an integer stat with the default format {@link StatFormat#INT} and generates a perk reward.
      * @param name the name of the stat
      */
-    protected void intStat(String name){ intStat(name, 0, new PropertyBuilder().format(StatFormat.INT).perkReward().create()); }
-    protected void intStat(String name, StatProperties properties){ intStat(name, 0, properties); }
-    protected void intStat(String name, int def, StatProperties properties){
+    public void intStat(String name){ intStat(name, 0, new PropertyBuilder().format(StatFormat.INT).perkReward().create()); }
+    public void intStat(String name, StatProperties properties){ intStat(name, 0, properties); }
+    public void intStat(String name, int def, StatProperties properties){
         if (allStatNames.contains(name)) return;
         allStatNames.add(name);
         ints.put(name, new NumberHolder<>(def, def, properties));
@@ -267,9 +274,9 @@ public abstract class Profile {
      * Registers a float stat with the default format {@link StatFormat#FLOAT_P2} and generates a perk reward.
      * @param name the name of the stat
      */
-    protected void floatStat(String name){ floatStat(name, 0, new PropertyBuilder().format(StatFormat.FLOAT_P2).perkReward().create()); }
-    protected void floatStat(String name, StatProperties properties){ floatStat(name, 0, properties); }
-    protected void floatStat(String name, float def, StatProperties properties){
+    public void floatStat(String name){ floatStat(name, 0, new PropertyBuilder().format(StatFormat.FLOAT_P2).perkReward().create()); }
+    public void floatStat(String name, StatProperties properties){ floatStat(name, 0, properties); }
+    public void floatStat(String name, float def, StatProperties properties){
         if (allStatNames.contains(name)) return;
         allStatNames.add(name);
         floats.put(name, new NumberHolder<>(def, def, properties));
@@ -281,9 +288,9 @@ public abstract class Profile {
      * Registers a double stat with the default format {@link StatFormat#FLOAT_P2} and generates a perk reward.
      * @param name the name of the stat
      */
-    protected void doubleStat(String name){ doubleStat(name, 0, new PropertyBuilder().format(StatFormat.FLOAT_P2).perkReward().create()); }
-    protected void doubleStat(String name, StatProperties properties){ doubleStat(name, 0, properties); }
-    protected void doubleStat(String name, double def, StatProperties properties){
+    public void doubleStat(String name){ doubleStat(name, 0, new PropertyBuilder().format(StatFormat.FLOAT_P2).perkReward().create()); }
+    public void doubleStat(String name, StatProperties properties){ doubleStat(name, 0, properties); }
+    public void doubleStat(String name, double def, StatProperties properties){
         if (allStatNames.contains(name)) return;
         allStatNames.add(name);
         doubles.put(name, new NumberHolder<>(def, def, properties));
@@ -291,16 +298,23 @@ public abstract class Profile {
         tablesToUpdate.add(name);
     }
 
-    protected void stringSetStat(String name){
+    public void stringSetStat(String name){
         if (allStatNames.contains(name)) return;
         allStatNames.add(name);
         stringSets.put(name, new HashSet<>());
         tablesToUpdate.add(name);
     }
 
-    protected void booleanStat(String name){ booleanStat(name, false, new BooleanProperties(true, true)); }
-    protected void booleanStat(String name, BooleanProperties properties){ booleanStat(name, false, properties); }
-    protected void booleanStat(String name, boolean def, BooleanProperties properties){
+    public void stringSetStat(String name, Collection<String> def){
+        if (allStatNames.contains(name)) return;
+        allStatNames.add(name);
+        stringSets.put(name, new HashSet<>(def));
+        tablesToUpdate.add(name);
+    }
+
+    public void booleanStat(String name){ booleanStat(name, false, new BooleanProperties(true, true)); }
+    public void booleanStat(String name, BooleanProperties properties){ booleanStat(name, false, properties); }
+    public void booleanStat(String name, boolean def, BooleanProperties properties){
         if (allStatNames.contains(name)) return;
         allStatNames.add(name);
         booleans.put(name, new BooleanHolder(def, def, properties));
@@ -507,25 +521,47 @@ public abstract class Profile {
     }
 
     public void registerPerkRewards(){
-        String skill = getSkillType().getSimpleName().toLowerCase(java.util.Locale.US).replace("skill", "");
+        String skill = this instanceof ConfigurableProfile c ? c.getSkillTypeName().toLowerCase(java.util.Locale.US) : getSkillType().getSimpleName().toLowerCase(java.util.Locale.US).replace("skill", "");
         if (getSkillType() == null) return;
-        for (String s : getAllStatNames()) {
-            StatProperties properties = getNumberStatProperties().get(s);
-            if (properties != null && properties.generatePerkRewards()) {
-                if (intStatNames().contains(s)) {
-                    PerkRewardRegistry.register(new ProfileIntAdd(skill + "_" + s + "_add", s, getClass()));
-                    PerkRewardRegistry.register(new ProfileIntSet(skill + "_" + s + "_set", s, getClass()));
-                } else if (floatStatNames().contains(s)) {
-                    PerkRewardRegistry.register(new ProfileFloatAdd(skill + "_" + s + "_add", s, getClass()));
-                    PerkRewardRegistry.register(new ProfileFloatSet(skill + "_" + s + "_set", s, getClass()));
-                } else if (doubleStatNames().contains(s)) {
-                    PerkRewardRegistry.register(new ProfileDoubleAdd(skill + "_" + s + "_add", s, getClass()));
-                    PerkRewardRegistry.register(new ProfileDoubleSet(skill + "_" + s + "_set", s, getClass()));
+        if (this instanceof ConfigurableProfile c){
+            for (String s : getAllStatNames()) {
+                StatProperties properties = getNumberStatProperties().get(s);
+                if (properties != null && properties.generatePerkRewards()) {
+                    if (intStatNames().contains(s)) {
+                        PerkRewardRegistry.register(new ProfileIntAdd(skill + "_" + s + "_add", s, c.getSkillTypeName()));
+                        PerkRewardRegistry.register(new ProfileIntSet(skill + "_" + s + "_set", s, c.getSkillTypeName()));
+                    } else if (floatStatNames().contains(s)) {
+                        PerkRewardRegistry.register(new ProfileFloatAdd(skill + "_" + s + "_add", s, c.getSkillTypeName()));
+                        PerkRewardRegistry.register(new ProfileFloatSet(skill + "_" + s + "_set", s, c.getSkillTypeName()));
+                    } else if (doubleStatNames().contains(s)) {
+                        PerkRewardRegistry.register(new ProfileDoubleAdd(skill + "_" + s + "_add", s, c.getSkillTypeName()));
+                        PerkRewardRegistry.register(new ProfileDoubleSet(skill + "_" + s + "_set", s, c.getSkillTypeName()));
+                    }
+                }
+                if (shouldBooleanStatHavePerkReward(s)){
+                    PerkRewardRegistry.register(new ProfileBooleanSet(skill + "_" + s + "_set", s, c.getSkillTypeName()));
+                    PerkRewardRegistry.register(new ProfileBooleanToggle(skill + "_" + s + "_toggle", s, c.getSkillTypeName()));
                 }
             }
-            if (shouldBooleanStatHavePerkReward(s)){
-                PerkRewardRegistry.register(new ProfileBooleanSet(skill + "_" + s + "_set", s, getClass()));
-                PerkRewardRegistry.register(new ProfileBooleanToggle(skill + "_" + s + "_toggle", s, getClass()));
+        } else {
+            for (String s : getAllStatNames()) {
+                StatProperties properties = getNumberStatProperties().get(s);
+                if (properties != null && properties.generatePerkRewards()) {
+                    if (intStatNames().contains(s)) {
+                        PerkRewardRegistry.register(new ProfileIntAdd(skill + "_" + s + "_add", s, getClass()));
+                        PerkRewardRegistry.register(new ProfileIntSet(skill + "_" + s + "_set", s, getClass()));
+                    } else if (floatStatNames().contains(s)) {
+                        PerkRewardRegistry.register(new ProfileFloatAdd(skill + "_" + s + "_add", s, getClass()));
+                        PerkRewardRegistry.register(new ProfileFloatSet(skill + "_" + s + "_set", s, getClass()));
+                    } else if (doubleStatNames().contains(s)) {
+                        PerkRewardRegistry.register(new ProfileDoubleAdd(skill + "_" + s + "_add", s, getClass()));
+                        PerkRewardRegistry.register(new ProfileDoubleSet(skill + "_" + s + "_set", s, getClass()));
+                    }
+                }
+                if (shouldBooleanStatHavePerkReward(s)){
+                    PerkRewardRegistry.register(new ProfileBooleanSet(skill + "_" + s + "_set", s, getClass()));
+                    PerkRewardRegistry.register(new ProfileBooleanToggle(skill + "_" + s + "_toggle", s, getClass()));
+                }
             }
         }
     }

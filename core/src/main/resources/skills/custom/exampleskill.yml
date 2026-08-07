@@ -1,0 +1,106 @@
+enabled: false
+order: 999
+
+# DISCLAIMER
+# Just because you can register new skills here, doesn't mean they're playable!
+# It's expected that you figure out your own method of distributing exp through the /val exp command.
+# Making a skill only means it appears in the skill tree menu in /skills. The perks you
+# define here are functional, but it's up to you to make them actually do what you want.
+
+# Skill appearance
+
+display_name: '&7Not being handsome and sexy'
+icon: CHICKEN
+icon_data: -1
+description: '&fThe higher this skill the worse you are at being handsome and sexy ;)'
+permission: do.you.wanna.smooch.sometime
+
+levelbar_title: '&7Being uggo &dLV %lv_current% &5%exp_current%&7/&5%exp_next% &7(&d%exp%&7)'
+levelbar_color: YELLOW # You can choose between BLUE, YELLOW, GREEN, PINK, PURPLE, RED, WHITE
+levelbar_style: SOLID # You can choose between SEGMENTED_6, SEGMENTED_10, SEGMENTED_12, SEGMENTED_20, and SOLID
+
+# Stats (They do not do anything by default, implementation is yet again up to you)
+# PlaceholderAPI may be used to utilize these stats in other plugins or commands, where possible
+# The stat values you give indicate the default value of the stat
+stats:
+  ints:
+    # The following perk rewards are registered per int stat:
+    # [skill]_[stat]_add
+    # [skill]_[stat]_set
+    # where [skill] is the name of the file (minus .yml) in lowercase. In this case "exampleskill"
+    # In this case exampleskill_exampleint_add and exampleskill_exampleint_set are added
+    # This follows for the other stat types too
+    exampleint: 0
+  floats:
+    # The following perk rewards are registered per float stat:
+    # [skill]_[stat]_add
+    # [skill]_[stat]_set
+    examplefloat: 0.0
+  doubles:
+    # The following perk rewards are registered per double stat:
+    # [skill]_[stat]_add
+    # [skill]_[stat]_set
+    exampledouble: 0.0
+  booleans:
+    # The following perk rewards are registered per boolean stat:
+    # [skill]_[stat]_toggle
+    # [skill]_[stat]_set
+    exampleboolean: false
+  sets:
+    # The following perk rewards are registered per set stat:
+    # [skill]_[stat]_add
+    # [skill]_[stat]_remove
+    # [skill]_[stat]_clear
+    exampleset:
+      - "value"
+
+# Progression (perks and so forth)
+starting_perks:
+  recipes_unlock:
+    - gloves_for_safe_hand_holding
+
+experience:
+  max_level: 100
+  exp_level_curve: '(%level% + 75 * 2^(%level%/7.6)) + 300'
+  daily_limit: -1
+  daily_limit_warning: '&7Yay :) you can''t become any less handsome and sexy today'
+
+special_perks:
+  999:
+    recipes_unlock:
+      - gloves_of_safe_hand_holding_remover
+
+commands: []
+
+messages:
+  - 'TITLE(&r;&dNot being handsome and sexy&7 leveled up to &d%level% &r:()'
+  - '&dNot being handsome and sexy&7 leveled up to &d%level% &7:('
+
+leveling_perks:
+  power_armorbonus_add: -0.1
+
+starting_coordinates: '2,0'
+
+navigable: true
+perks:
+  raw_chicken:
+    icon: CHICKEN
+    coords: "2,0"
+    name: "&dRaw chicken"
+    description: "&fraw ciken"
+    cost: 1
+    hidden: true
+    required_lv: 100
+    perk_rewards:
+      power_armorbonus_add: 10
+    messages:
+      - "&fraw chikne"
+    custom_model_data_unlockable: -1
+    custom_model_data_unlocked: -1
+    custom_model_data_visible: -1
+    connection_line:
+      '1':
+        position: '2,-1'
+        locked: GRAY_DYE:1172700
+        unlockable: ORANGE_DYE:1172800
+        unlocked: LIME_DYE:1172900

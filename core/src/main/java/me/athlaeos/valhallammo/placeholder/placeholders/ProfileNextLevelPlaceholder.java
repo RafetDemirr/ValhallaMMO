@@ -10,11 +10,19 @@ import org.bukkit.entity.Player;
 public class ProfileNextLevelPlaceholder extends Placeholder {
     private StatFormat format;
     private final Class<? extends Profile> type;
+    private final String configurableType;
 
     public ProfileNextLevelPlaceholder(String placeholder, Class<? extends Profile> type, StatFormat format) {
         super(placeholder);
         this.type = type;
         this.format = format;
+        this.configurableType = null;
+    }
+    public ProfileNextLevelPlaceholder(String placeholder, String type, StatFormat format) {
+        super(placeholder);
+        this.type = null;
+        this.format = format;
+        this.configurableType = type;
     }
 
     public StatFormat getFormat() {
@@ -27,7 +35,7 @@ public class ProfileNextLevelPlaceholder extends Placeholder {
 
     @Override
     public String parse(String s, Player p) {
-        Profile profile = ProfileCache.getOrCache(p, type);
-        return s.replace(placeholder, format.format(Math.min(SkillRegistry.getSkill(profile.getSkillType()).getMaxLevel(), profile.getLevel() + 1)));
+        Profile profile = this.type != null ? ProfileCache.getOrCache(p, type) : ProfileCache.getOrCacheConfigurable(p, configurableType);
+        return s.replace(placeholder, format.format(Math.min(SkillRegistry.getSkill(profile.getSkillTypeName()).getMaxLevel(), profile.getLevel() + 1)));
     }
 }

@@ -97,7 +97,7 @@ public class PredicateRegistry {
         register(new EntityLevelFilter());
         register(new BabyFilter());
         register(new NearbyStructureFilter());
-        for (Skill skill : SkillRegistry.getAllSkills().values())
+        for (Skill skill : SkillRegistry.getAllSkillsByType().values())
             register(new SkillLevelFilter(skill));
     }
 

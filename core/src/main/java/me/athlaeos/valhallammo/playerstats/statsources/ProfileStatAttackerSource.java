@@ -68,7 +68,7 @@ public class ProfileStatAttackerSource implements AccumulativeStatSource, EvEAcc
 
         if (trueAttacker instanceof Player pl){
             Profile profile = ProfileCache.getOrCache(pl, type);
-            String requiredPermission = SkillRegistry.isRegistered(profile.getSkillType()) ? SkillRegistry.getSkill(profile.getSkillType()).getRequiredPermission() : null;
+            String requiredPermission = SkillRegistry.isRegistered(profile.getSkillTypeName()) ? SkillRegistry.getSkill(profile.getSkillTypeName()).getRequiredPermission() : null;
             if (requiredPermission != null && !pl.hasPermission(requiredPermission)) return def;
             if (numberType.equals(Integer.class)) return (negative ? -1 : 1) * profile.getInt(stat);
             if (numberType.equals(Float.class)) return (negative ? -1 : 1) * profile.getFloat(stat);

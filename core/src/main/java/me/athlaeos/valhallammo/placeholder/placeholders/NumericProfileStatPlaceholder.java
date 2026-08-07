@@ -10,12 +10,21 @@ public class NumericProfileStatPlaceholder extends Placeholder {
     private StatFormat format;
     private final Class<? extends Profile> type;
     private final String stat;
+    private final String configurableType;
 
     public NumericProfileStatPlaceholder(String placeholder, Class<? extends Profile> type, String stat, StatFormat format) {
         super(placeholder);
         this.type = type;
         this.stat = stat;
         this.format = format;
+        this.configurableType = null;
+    }
+    public NumericProfileStatPlaceholder(String placeholder, String type, String stat, StatFormat format) {
+        super(placeholder);
+        this.type = null;
+        this.format = format;
+        this.stat = stat;
+        this.configurableType = type;
     }
 
     public StatFormat getFormat() {
@@ -28,10 +37,12 @@ public class NumericProfileStatPlaceholder extends Placeholder {
 
     @Override
     public String parse(String s, Player p) {
-        Profile profile = ProfileCache.getOrCache(p, type);
+        Profile profile = this.type != null ? ProfileCache.getOrCache(p, type) : ProfileCache.getOrCacheConfigurable(p, configurableType);
         if (profile.intStatNames().contains(stat)) return s.replace(placeholder, format.format(profile.getInt(stat)));
         if (profile.floatStatNames().contains(stat)) return s.replace(placeholder, format.format(profile.getFloat(stat)));
         if (profile.doubleStatNames().contains(stat)) return s.replace(placeholder, format.format(profile.getDouble(stat)));
-        throw new IllegalArgumentException("Numeric stat placeholder uses stat " + stat + ", but it's not a number");
+        if (profile.stringSetStatNames().contains(stat)) return s.replace(placeholder, String.join(",", profile.getStringSet(stat)));
+        if (profile.booleanStatNames().contains(stat)) return s.replace(placeholder, String.valueOf(profile.getBoolean(stat)));
+        throw new IllegalArgumentException("Numeric stat placeholder uses stat " + stat + ", but it's not a number, string set, or boolean");
     }
 }

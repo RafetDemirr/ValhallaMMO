@@ -92,7 +92,7 @@ public class ProfileStatDefenderArmorWeightSetSource implements AccumulativeStat
                 case NONE -> properties.getNoArmorCount();
             };
             Profile profile = ProfileCache.getOrCache(pl, type);
-            String requiredPermission = SkillRegistry.isRegistered(profile.getSkillType()) ? SkillRegistry.getSkill(profile.getSkillType()).getRequiredPermission() : null;
+            String requiredPermission = SkillRegistry.isRegistered(profile.getSkillTypeName()) ? SkillRegistry.getSkill(profile.getSkillTypeName()).getRequiredPermission() : null;
             if (requiredPermission != null && !pl.hasPermission(requiredPermission)) return def;
             int required = -1;
             if (quantityType.equals(Integer.class)) required = profile.getInt(qtyStat);

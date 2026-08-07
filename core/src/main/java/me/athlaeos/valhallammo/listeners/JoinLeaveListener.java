@@ -69,6 +69,7 @@ public class JoinLeaveListener implements Listener {
         EntityAttributeStats.removeStats(player);
         PotionEffectRegistry.markAsUnaffected(player);
         ProfileRegistry.getPersistence().saveProfile(player.getUniqueId(), true);
+        ProfileRegistry.getPersistence().saveConfigurableProfile(player.getUniqueId(), true);
         FlightReward.setFlight(player, false);
     }
 

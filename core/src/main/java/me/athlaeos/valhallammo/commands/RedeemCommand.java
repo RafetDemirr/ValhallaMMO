@@ -79,7 +79,7 @@ public class RedeemCommand implements TabExecutor {
 	public List<String> onTabComplete(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String s, @NotNull String[] strings) {
 		if (strings.length == 1) return List.of("levels", "exp");
 		if (strings.length == 2) return
-				SkillRegistry.getAllSkills().values().stream()
+				SkillRegistry.getAllSkillsByType().values().stream()
 						.filter(skill -> !(skill instanceof PowerSkill))
 						.map(skill -> skill.getType().toLowerCase(java.util.Locale.US))
 						.collect(Collectors.toList());

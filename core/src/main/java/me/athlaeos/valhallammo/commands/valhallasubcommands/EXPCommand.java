@@ -93,7 +93,7 @@ public class EXPCommand implements Command {
 	@Override
 	public List<String> getSubcommandArgs(CommandSender sender, String[] args) {
 		if (args.length == 2){
-			return SkillRegistry.getAllSkills().values().stream().map(Skill::getType).map(String::toLowerCase).collect(Collectors.toList());
+			return SkillRegistry.getAllSkillsByType().values().stream().map(Skill::getType).map(String::toLowerCase).collect(Collectors.toList());
 		}
 		if (args.length == 5) return List.of("true", "false");
 		return null;

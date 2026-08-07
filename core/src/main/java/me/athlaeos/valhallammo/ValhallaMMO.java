@@ -94,6 +94,7 @@ public class ValhallaMMO extends JavaPlugin {
         save("languages/materials/en-us.json");
         save("recipes/grid_recipes.json");
         save("recipes/brewing_recipes.json");
+        save("skills/custom/exampleskill.yml");
         if (MinecraftVersion.currentVersionNewerThan(MinecraftVersion.MINECRAFT_1_20_6)) save("recipes/brewing_recipes_1_20_6+.json");
         if (MinecraftVersion.currentVersionNewerThan(MinecraftVersion.MINECRAFT_1_21_9)) save("recipes/grid_recipes_1_21_9+.json");
         if (MinecraftVersion.currentVersionNewerThan(MinecraftVersion.MINECRAFT_26_1)) {
@@ -299,6 +300,7 @@ public class ValhallaMMO extends JavaPlugin {
         // to be loaded, otherwise their progress is reset
         for (Player p : getServer().getOnlinePlayers()){
             ProfileRegistry.getPersistence().loadProfile(p.getUniqueId());
+            ProfileRegistry.getPersistence().loadConfigurableProfile(p.getUniqueId());
         }
 
         worldBlacklist.addAll(pluginConfig.getStringList("world_blacklist"));

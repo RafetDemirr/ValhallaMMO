@@ -1,6 +1,7 @@
 package me.athlaeos.valhallammo.playerstats.profiles;
 
 import me.athlaeos.valhallammo.ValhallaMMO;
+import me.athlaeos.valhallammo.playerstats.profiles.implementations.ConfigurableProfile;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -12,10 +13,12 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class ProfileCache {
     private static final Map<UUID, Map<Class<? extends Profile>, CacheEntry>> cache = new ConcurrentHashMap<>();
+    private static final Map<UUID, Map<String, CacheEntry>> configurableProfileCache = new ConcurrentHashMap<>();
     private static final long cacheDuration = ValhallaMMO.getPluginConfig().getLong("profile_caching", 10000L);
 
     public static void resetCache(UUID uuid) {
         cache.remove(uuid);
+        configurableProfileCache.remove(uuid);
     }
 
     /**
@@ -25,10 +28,15 @@ public class ProfileCache {
      */
     public static void resetCache(Player player) {
         cache.remove(player.getUniqueId());
+        configurableProfileCache.remove(player.getUniqueId());
     }
 
     public static void resetCache(Player player, Class<? extends Profile> type) {
         resetCache(player.getUniqueId(), type);
+    }
+
+    public static void resetCache(Player player, String configurableType) {
+        resetCache(player.getUniqueId(), configurableType);
     }
 
     public static void resetCache(UUID uuid, Class<? extends Profile> type) {
@@ -38,8 +46,16 @@ public class ProfileCache {
         }
     }
 
+    public static void resetCache(UUID uuid, String configurableType) {
+        Map<String, CacheEntry> profiles = configurableProfileCache.get(uuid);
+        if (profiles != null) {
+            profiles.remove(configurableType);
+        }
+    }
+
     public static void resetAllCaches() {
         cache.clear();
+        configurableProfileCache.clear();
     }
 
     /**
@@ -61,6 +77,20 @@ public class ProfileCache {
             cache.put(player.getUniqueId(), profiles);
         }
         return (T) entry.getCachedProfile();
+    }
+
+    public static ConfigurableProfile getOrCacheConfigurable(Player player, String type){
+        Map<String, CacheEntry> profiles = configurableProfileCache.getOrDefault(player.getUniqueId(), new HashMap<>());
+        CacheEntry entry = profiles.get(type);
+        if (entry == null || entry.getCacheUntil() < System.currentTimeMillis()) {
+            entry = new CacheEntry(ProfileRegistry.isLoaded(player)
+                    ? ProfileRegistry.getMergedConfigurableProfile(player, type)
+                    : ProfileRegistry.getBlankConfigurableProfile(player, type), cacheDuration);
+            profiles.put(type, entry);
+            entry.getCachedProfile().onCacheRefresh();
+            configurableProfileCache.put(player.getUniqueId(), profiles);
+        }
+        return (ConfigurableProfile) entry.getCachedProfile();
     }
 
     /**
