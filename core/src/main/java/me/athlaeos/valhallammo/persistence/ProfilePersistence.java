@@ -41,10 +41,11 @@ public abstract class ProfilePersistence {
     private static final Map<UUID, Collection<String>> CONFIGURABLE_PROFILES_TO_SAVE = new HashMap<>();
 
     public final ScheduledExecutorService profileThreads;
+    public final ScheduledExecutorService configurableProfileThreads;
     protected final AsyncLoadingCache<UUID, ClassToInstanceMap<Profile>> persistentProfiles;
     protected final AsyncLoadingCache<UUID, Map<String, ConfigurableProfile>> persistentConfigurableProfiles;
     protected final Map<UUID, ClassToInstanceMap<Profile>> skillProfiles;
-    protected final Map<UUID, Map<String, ConfigurableProfile>> skillConfigurbaleProfiles;
+    protected final Map<UUID, Map<String, ConfigurableProfile>> skillConfigurableProfiles;
     protected final Set<UUID> saving = new HashSet<>();
     protected final Set<UUID> savingConfigurable = new HashSet<>();
 
@@ -60,11 +61,12 @@ public abstract class ProfilePersistence {
         persistentProfiles = Caffeine.newBuilder()
                 .executor(profileThreads)
                 .buildAsync((uuid, executor) -> CompletableFuture.supplyAsync(() -> loadProfile(uuid), executor));
+        configurableProfileThreads = Utils.threadPool("ConfigurableProfile", timeout, false, threads);
         persistentConfigurableProfiles = Caffeine.newBuilder()
-                .executor(profileThreads)
+                .executor(configurableProfileThreads)
                 .buildAsync((uuid, executor) -> CompletableFuture.supplyAsync(() -> loadConfigurableProfile(uuid), executor));
         skillProfiles = new HashMap<>();
-        skillConfigurbaleProfiles = new HashMap<>();
+        skillConfigurableProfiles = new HashMap<>();
     }
 
     public void requestProfile(UUID p) {
@@ -269,7 +271,7 @@ public abstract class ProfilePersistence {
             Player player = Bukkit.getPlayer(uuid);
             if (player != null) {
                 skillProfiles.remove(player.getUniqueId());
-                skillConfigurbaleProfiles.remove(player.getUniqueId());
+                skillConfigurableProfiles.remove(player.getUniqueId());
                 Utils.sendMessage(player, TranslationManager.getTranslation("status_profiles_loaded"));
                 SkillRegistry.updateSkillProgression(player, withPersistentPerks);
             } else {
@@ -310,7 +312,7 @@ public abstract class ProfilePersistence {
     public void saveConfigurableProfileAsync(UUID p) {
         if (!savingConfigurable.add(p)) return;
 
-        CompletableFuture.runAsync(() -> saveConfigurableProfile(p, false), profileThreads).whenComplete((ignored, ex) -> {
+        CompletableFuture.runAsync(() -> saveConfigurableProfile(p, false), configurableProfileThreads).whenComplete((ignored, ex) -> {
             if (ex != null) {
                 ValhallaMMO.logWarning("Exception when trying to save configurable profile for " + p + ": ");
                 ex.printStackTrace();
@@ -341,11 +343,8 @@ public abstract class ProfilePersistence {
     }
 
     public void saveConfigurableProfile(UUID p, boolean localLock) {
-        if (!isConfigurableProfilesLoaded(p)) {
-            return;
-        } else if (localLock && !savingConfigurable.add(p)) {
-            return;
-        }
+        if (!isConfigurableProfilesLoaded(p)) return;
+        else if (localLock && !savingConfigurable.add(p)) return;
 
         Map<String, ConfigurableProfile> configurableProfiles = persistentConfigurableProfiles.get(p).join();
         for (ConfigurableProfile profile : configurableProfiles.values()) {
@@ -363,16 +362,18 @@ public abstract class ProfilePersistence {
 
     public void uncacheProfile(UUID p) {
         persistentProfiles.synchronous().invalidate(p);
+        persistentConfigurableProfiles.synchronous().invalidate(p);
         skillProfiles.remove(p);
-        skillConfigurbaleProfiles.remove(p);
+        skillConfigurableProfiles.remove(p);
         JoinLeaveListener.getLoadedProfiles().remove(p);
         ProfileCache.resetCache(p);
     }
 
     public void uncacheAllProfiles() {
         persistentProfiles.synchronous().invalidateAll();
+        persistentConfigurableProfiles.synchronous().invalidateAll();
         skillProfiles.clear();
-        skillConfigurbaleProfiles.clear();
+        skillConfigurableProfiles.clear();
         JoinLeaveListener.getLoadedProfiles().clear();
         ProfileCache.resetAllCaches();
     }
@@ -443,9 +444,9 @@ public abstract class ProfilePersistence {
     }
 
     public void setSkillConfigurableProfile(UUID p, ConfigurableProfile profile, String type) {
-        Map<String, ConfigurableProfile> profiles = persistentConfigurableProfiles.get(p).join();
+        Map<String, ConfigurableProfile> profiles = skillConfigurableProfiles.getOrDefault(p, new HashMap<>());
         profiles.put(type, profile);
-        skillConfigurbaleProfiles.put(p, profiles);
+        skillConfigurableProfiles.put(p, profiles);
     }
 
     public <T extends Profile> T getPersistentProfile(UUID p, Class<T> type) {
@@ -468,7 +469,7 @@ public abstract class ProfilePersistence {
     }
 
     public ConfigurableProfile getSkillConfigurableProfile(UUID p, String type) {
-        Map<String, ConfigurableProfile> profiles = skillConfigurbaleProfiles.get(p);
+        Map<String, ConfigurableProfile> profiles = skillConfigurableProfiles.get(p);
         return profiles == null ? null : profiles.get(type);
     }
 
@@ -716,7 +717,9 @@ public abstract class ProfilePersistence {
             resetConfigurableProfiles.put(profile.getOwner(), profilesToReset);
             return true;
         }
-        if (profile.getOwner() == null || (!(profile.getLevel() == 0 && profile.getNewGamePlus() == 0 && !profile.shouldForcePersist()))) return false;
+        if (profile.getOwner() == null || (profile.getLevel() == 0 && profile.getNewGamePlus() == 0 && !profile.shouldForcePersist())) {
+            return false;
+        }
         return CONFIGURABLE_PROFILES_TO_SAVE.getOrDefault(profile.getOwner(), Set.of()).contains(profile.getSkillTypeName());
     }
 

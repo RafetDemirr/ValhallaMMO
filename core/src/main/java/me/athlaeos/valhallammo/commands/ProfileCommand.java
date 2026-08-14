@@ -59,4 +59,26 @@ public class ProfileCommand implements CommandExecutor {
             displayTo.sendMessage(Utils.chat(String.format("&f> %s: %s", i, profile.getBoolean(i))));
         }
     }
+
+    public static void displayProfile(CommandSender displayTo, Player of, String type) {
+        Profile profile = ProfileCache.getOrCacheConfigurable(of, type);
+        for (String i : profile.intStatNames()){
+            StatFormat format = profile.getNumberStatProperties().get(i).getFormat();
+            displayTo.sendMessage(Utils.chat(String.format("&f> %s: %s", format == null ? profile.getInt(i) : format.format(profile.getInt(i)), i)));
+        }
+        for (String i : profile.floatStatNames()){
+            StatFormat format = profile.getNumberStatProperties().get(i).getFormat();
+            displayTo.sendMessage(Utils.chat(String.format("&f> %s: %s", format == null ? profile.getFloat(i) : format.format(profile.getFloat(i)), i)));
+        }
+        for (String i : profile.doubleStatNames()){
+            StatFormat format = profile.getNumberStatProperties().get(i).getFormat();
+            displayTo.sendMessage(Utils.chat(String.format("&f> %s: %s", format == null ? profile.getDouble(i) : format.format(profile.getDouble(i)), i)));
+        }
+        for (String i : profile.stringSetStatNames()){
+            displayTo.sendMessage(Utils.chat(String.format("&f> %s: %s", i, String.join(", ", profile.getStringSet(i)))));
+        }
+        for (String i : profile.booleanStatNames()){
+            displayTo.sendMessage(Utils.chat(String.format("&f> %s: %s", i, profile.getBoolean(i))));
+        }
+    }
 }

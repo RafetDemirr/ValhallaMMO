@@ -57,7 +57,7 @@ public class SkillRegistry {
                 YamlConfiguration config = ConfigManager.getConfig("skills/custom/" + skillFile.getName()).get();
                 if (!config.getBoolean("enabled")) continue;
                 ValhallaMMO.logFine("Registered custom skill " + skillFile.getName());
-                String type = skillFile.getName().replace(".yml", "");
+                String type = skillFile.getName().replace(".yml", "").toUpperCase(Locale.US);
                 registerSkill(new ConfigurableSkill(type, config.getInt("order", 999)));
                 ConfigurableProfile profile = new ConfigurableProfile(null, type);
 

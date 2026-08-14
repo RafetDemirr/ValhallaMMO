@@ -111,11 +111,15 @@ public class LootTableOverviewMenu extends Menu {
                     return;
                 }
                 case "editLootTablesButton" -> {
-                    new LootTableSelectionMenu(playerMenuUtility, this, null).open();
+                    new LootTableSelectionMenu(playerMenuUtility, this, t ->
+                            new LootTableEditor(playerMenuUtility, t).open()
+                    ).open();
                     return;
                 }
                 case "editReplacementTablesButton" -> {
-                    new ReplacementTableSelectionMenu(playerMenuUtility, this, null).open();
+                    new ReplacementTableSelectionMenu(playerMenuUtility, this, r ->
+                            new ReplacementTableEditor(playerMenuUtility, r).open()
+                    ).open();
                     return;
                 }
                 case "nextPageButton" -> currentPage++;

@@ -28,7 +28,7 @@ public class ProfileRegistry {
     private static ProfilePersistence persistence = null;
     private static final int delay_profile_saving = ConfigManager.getConfig("config.yml").reload().get().getInt("db_persist_delay");
     private static Map<Class<? extends Profile>, Profile> registeredProfiles = Collections.unmodifiableMap(new HashMap<>());
-    private static Map<String, ConfigurableProfile> registeredConfigurableProfiles = Collections.unmodifiableMap(new HashMap<>());
+    private static Map<String, ConfigurableProfile> registeredConfigurableProfiles = new HashMap<>();
     private static final boolean savingProfilesMessage = ValhallaMMO.getPluginConfig().getBoolean("saving_profiles_notification");
 
     public static void registerDefaultProfiles(){
@@ -231,7 +231,7 @@ public class ProfileRegistry {
     }
 
     public static ConfigurableProfile getPersistentConfigurableProfile(Player p, String type) {
-        ConfigurableProfile profile = persistence.getPersistentProfile(p.getUniqueId(), ConfigurableProfile.class);
+        ConfigurableProfile profile = persistence.getPersistentConfigurableProfile(p.getUniqueId(), type);
         return profile == null ? getBlankConfigurableProfile(p, type) : profile;
     }
 

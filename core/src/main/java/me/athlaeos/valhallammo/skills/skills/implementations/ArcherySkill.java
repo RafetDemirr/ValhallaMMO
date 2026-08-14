@@ -201,7 +201,6 @@ public class ArcherySkill extends Skill implements Listener {
         if (!p.getWorld().equals(v.getWorld())) return;
         int distance = (int) p.getLocation().distance(v.getLocation());
         int damageDistance = (int) Math.ceil(Math.min(damageDistanceLimit, distance) / 10D);
-        System.out.println("distance quantity: " + damageDistance + "/" + damageDistanceLimit);
         int expDistance = (int) Math.ceil(Math.min(expDistanceLimit, distance) / 10D);
 
         double damage = e.getDamage();

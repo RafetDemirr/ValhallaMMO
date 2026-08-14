@@ -7,6 +7,7 @@ import me.athlaeos.valhallammo.playerstats.profiles.properties.PropertyBuilder;
 import me.athlaeos.valhallammo.skills.skills.Skill;
 import me.athlaeos.valhallammo.skills.skills.implementations.ConfigurableSkill;
 
+import java.util.Locale;
 import java.util.UUID;
 
 @SuppressWarnings("unused")
@@ -25,7 +26,7 @@ public class ConfigurableProfile extends Profile {
 
     @Override
     public String getTableName() {
-        return "profiles_" + type;
+        return "profiles_" + type.toLowerCase(Locale.US);
     }
 
     @Override
