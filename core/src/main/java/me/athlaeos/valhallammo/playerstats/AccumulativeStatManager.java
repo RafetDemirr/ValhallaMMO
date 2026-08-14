@@ -351,6 +351,7 @@ public class AccumulativeStatManager {
 
         register("BUTCHERY_DROP_MULTIPLIER", new AttributeSource("BUTCHERY_DROPS"), new PotionEffectSource("BUTCHERY_DROPS"), new ProfileStatSource(FarmingProfile.class, "butcheryDrops"), new GlobalBuffSource("butchery_drop_multiplier"));
         register("FARMING_DROP_MULTIPLIER", new ProfileStatSource(FarmingProfile.class, "farmingDrops"), new AttributeSource("FARMING_DROPS"), new PotionEffectSource("FARMING_DROPS"), new GlobalBuffSource("farming_drop_multiplier"));
+        register("BUTCHERY_LUCK", new ProfileStatSource(FarmingProfile.class, "butcheryLuck"), new AttributeSource("FARMING_RARE_DROPS"), new PotionEffectSource("FARMING_RARE_DROPS"), new GlobalBuffSource("butchery_luck"));
         register("FARMING_LUCK", new ProfileStatSource(FarmingProfile.class, "farmingLuck"), new AttributeSource("FARMING_RARE_DROPS"), new PotionEffectSource("FARMING_RARE_DROPS"), new GlobalBuffSource("farming_luck"));
         register("FARMING_EXP_GAIN", new PermissionStatSource("valhalla.exp.farming"), new ProfileStatSource(FarmingProfile.class, "farmingEXPMultiplier"), new GlobalBuffSource("farming_experience"));
 

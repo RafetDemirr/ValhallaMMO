@@ -43,18 +43,19 @@ public class JoinLeaveListener implements Listener {
         GlobalEffect.temporarilyRevealBossBar(player);
         PlayerMenuUtilManager.removePlayerMenuUtility(player.getUniqueId());
 
-        double health = player.getPersistentDataContainer().getOrDefault(HEALTH, PersistentDataType.DOUBLE, -1D);
-        if (health > 0){
-            AttributeInstance maxHealth = player.getAttribute(Attribute.GENERIC_MAX_HEALTH);
-            if (maxHealth != null){
-                if (maxHealth.getValue() < health) health = maxHealth.getValue();
-                player.setHealth(health);
-            }
-        }
-
         ValhallaMMO.getInstance().getServer().getScheduler().runTaskLater(ValhallaMMO.getInstance(), () -> {
             EntityAttributeStats.updateStats(player);
             FlightReward.setFlight(player, true);
+
+            double health = player.getPersistentDataContainer().getOrDefault(HEALTH, PersistentDataType.DOUBLE, -1D);
+            if (health > 0){
+                AttributeInstance maxHealth = player.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+                if (maxHealth != null){
+                    if (maxHealth.getValue() < health) health = maxHealth.getValue();
+                    player.setHealth(health);
+                }
+                player.getPersistentDataContainer().remove(HEALTH);
+            }
         }, 40L);
     }
 
@@ -68,6 +69,7 @@ public class JoinLeaveListener implements Listener {
         EntityAttributeStats.removeStats(player);
         PotionEffectRegistry.markAsUnaffected(player);
         ProfileRegistry.getPersistence().saveProfile(player.getUniqueId(), true);
+        ProfileRegistry.getPersistence().saveConfigurableProfile(player.getUniqueId(), true);
         FlightReward.setFlight(player, false);
     }
 

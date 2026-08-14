@@ -714,8 +714,7 @@ public class LootListener implements Listener {
         if (killer != null){
             AttributeInstance luckInstance = entity.getKiller() == null ? null : entity.getKiller().getAttribute(Attribute.GENERIC_LUCK);
             luck = luckInstance == null ? 0 : luckInstance.getValue();
-            luck += AccumulativeStatManager.getCachedStats("ENTITY_DROP_LUCK", killer, 10000, true);
-
+            luck += AccumulativeStatManager.getCachedRelationalStats("ENTITY_DROP_LUCK", e.getEntity(), killer, 10000, true);
             if (killer instanceof HumanEntity h){
                 looting = ItemUtils.isEmpty(h.getInventory().getItemInMainHand()) ? 0 :
                         h.getInventory().getItemInMainHand().getEnchantmentLevel(EnchantmentMappings.FORTUNE.getEnchantment());

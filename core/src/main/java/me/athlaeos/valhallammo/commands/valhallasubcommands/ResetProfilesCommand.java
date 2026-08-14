@@ -2,6 +2,7 @@ package me.athlaeos.valhallammo.commands.valhallasubcommands;
 
 import me.athlaeos.valhallammo.ValhallaMMO;
 import me.athlaeos.valhallammo.commands.Command;
+import me.athlaeos.valhallammo.skills.skills.implementations.ConfigurableSkill;
 import me.athlaeos.valhallammo.utility.Timer;
 import me.athlaeos.valhallammo.localization.TranslationManager;
 import me.athlaeos.valhallammo.playerstats.profiles.ProfileRegistry;
@@ -74,7 +75,8 @@ public class ResetProfilesCommand implements Command {
 						Utils.sendMessage(sender, TranslationManager.getTranslation("error_command_invalid_skill"));
 						return true;
 					}
-					ProfileRegistry.reset(target, skillToReset.getClass());
+					if (skillToReset instanceof ConfigurableSkill) ProfileRegistry.resetConfigurableSkill(target, skillToReset.getType());
+					else ProfileRegistry.reset(target, skillToReset.getClass());
 					Utils.sendMessage(sender, TranslationManager.getTranslation("status_command_hard_reset_success"));
 				} else {
 					ProfileRegistry.reset(target, type);
@@ -126,7 +128,7 @@ public class ResetProfilesCommand implements Command {
 		}
 		if (args.length == 3) {
 			if (args[1].equalsIgnoreCase("skill"))
-				return SkillRegistry.getAllSkills().values().stream().map(Skill::getType).map(String::toLowerCase).collect(Collectors.toList());
+				return SkillRegistry.getAllSkillsByType().values().stream().map(Skill::getType).map(String::toLowerCase).collect(Collectors.toList());
 			return null;
 		}
 		if (args.length == 4) {

@@ -290,7 +290,7 @@ public class SkillTreeMenu extends Menu {
             }
         }
         if (iconsSize > 0){
-            for (int i = 0; i < SkillRegistry.getAllSkills().size(); i++){
+            for (int i = 0; i < SkillRegistry.getAllSkillsByType().size(); i++){
                 for (int o = 0; o < 9; o++){
                     if (o >= skillIcons.size()) break;
                     ItemStack iconToPut = skillIcons.get(o);
@@ -460,7 +460,7 @@ public class SkillTreeMenu extends Menu {
 
     private void buildSkillTrees(){
         ValhallaMMO.getInstance().getServer().getScheduler().runTaskAsynchronously(ValhallaMMO.getInstance(), () -> {
-            List<Skill> skills = new ArrayList<>(SkillRegistry.getAllSkills().values());
+            List<Skill> skills = new ArrayList<>(SkillRegistry.getAllSkillsByType().values());
             skills.sort(Comparator.comparingInt(Skill::getSkillTreeMenuOrderPriority));
             for (Skill s : skills){
                 if (!s.isLevelableSkill()) continue;
@@ -538,6 +538,6 @@ public class SkillTreeMenu extends Menu {
     public static void updateSkillTrees(){
         skillTrees.clear();
         coordinateOffsets.clear();
-        for (Skill skill : SkillRegistry.getAllSkills().values()) updateSkillTree(skill);
+        for (Skill skill : SkillRegistry.getAllSkillsByType().values()) updateSkillTree(skill);
     }
 }

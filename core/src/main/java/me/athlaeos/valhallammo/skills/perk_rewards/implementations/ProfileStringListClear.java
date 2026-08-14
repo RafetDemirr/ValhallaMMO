@@ -1,6 +1,7 @@
 package me.athlaeos.valhallammo.skills.perk_rewards.implementations;
 
 import me.athlaeos.valhallammo.playerstats.AccumulativeStatManager;
+import me.athlaeos.valhallammo.playerstats.profiles.implementations.ConfigurableProfile;
 import me.athlaeos.valhallammo.skills.perk_rewards.PerkReward;
 import me.athlaeos.valhallammo.skills.perk_rewards.PerkRewardArgumentType;
 import me.athlaeos.valhallammo.playerstats.profiles.Profile;
@@ -12,22 +13,38 @@ import java.util.HashSet;
 public class ProfileStringListClear extends PerkReward {
     private final String stat;
     private final Class<? extends Profile> type;
+    private final String configurableType;
     public ProfileStringListClear(String name, String stat, Class<? extends Profile> type) {
         super(name);
         this.stat = stat;
         this.type = type;
+        this.configurableType = null;
+    }
+    public ProfileStringListClear(String name, String stat, String type) {
+        super(name);
+        this.stat = stat;
+        this.type = null;
+        this.configurableType = type;
     }
 
     @Override
     public void apply(Player player) {
-        Profile profile = isPersistent() ? ProfileRegistry.getPersistentProfile(player, type) : ProfileRegistry.getSkillProfile(player, type);
+        Profile profile = this.type != null ? (isPersistent() ? ProfileRegistry.getPersistentProfile(player, type) : ProfileRegistry.getSkillProfile(player, type)) :
+                (isPersistent() ? ProfileRegistry.getPersistentConfigurableProfile(player, configurableType) : ProfileRegistry.getSkillConfigurableProfile(player, configurableType));
 
         profile.setStringSet(stat, new HashSet<>());
 
-        if (isPersistent()) {
-            profile.setShouldForcePersist(true);
-            ProfileRegistry.setPersistentProfile(player, profile, type);
-        } else ProfileRegistry.setSkillProfile(player, profile, type);
+        if (this.type != null) {
+            if (isPersistent()) {
+                profile.setShouldForcePersist(true);
+                ProfileRegistry.setPersistentProfile(player, profile, type);
+            } else ProfileRegistry.setSkillProfile(player, profile, type);
+        } else {
+            if (isPersistent()) {
+                profile.setShouldForcePersist(true);
+                ProfileRegistry.setPersistentConfigurableProfile(player, (ConfigurableProfile) profile, configurableType);
+            } else ProfileRegistry.setSkillConfigurableProfile(player, (ConfigurableProfile) profile, configurableType);
+        }
 
         AccumulativeStatManager.uncacheProfile(player, type);
     }

@@ -6,6 +6,7 @@ import me.athlaeos.valhallammo.commands.ProfileCommand;
 import me.athlaeos.valhallammo.localization.TranslationManager;
 import me.athlaeos.valhallammo.skills.skills.Skill;
 import me.athlaeos.valhallammo.skills.skills.SkillRegistry;
+import me.athlaeos.valhallammo.skills.skills.implementations.ConfigurableSkill;
 import me.athlaeos.valhallammo.utility.Utils;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -43,7 +44,8 @@ public class ProfileStatsCommand implements Command {
             return true;
         }
 
-        ProfileCommand.displayProfile(sender, target, skill.getProfileType());
+        if (skill instanceof ConfigurableSkill c) ProfileCommand.displayProfile(sender, target, c.getType());
+        else ProfileCommand.displayProfile(sender, target, skill.getProfileType());
 
         return true;
     }
@@ -76,7 +78,7 @@ public class ProfileStatsCommand implements Command {
     @Override
     public List<String> getSubcommandArgs(CommandSender sender, String[] args) {
         if (args.length == 2){
-            return SkillRegistry.getAllSkills().values().stream().map(s -> s.getType().toLowerCase(java.util.Locale.US)).collect(Collectors.toList());
+            return SkillRegistry.getAllSkillsByType().values().stream().map(s -> s.getType().toLowerCase(java.util.Locale.US)).collect(Collectors.toList());
         }
         return null;
     }

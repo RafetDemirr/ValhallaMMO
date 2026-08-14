@@ -5,11 +5,12 @@ import com.google.common.collect.ImmutableClassToInstanceMap;
 import com.google.common.collect.MutableClassToInstanceMap;
 import me.athlaeos.valhallammo.ValhallaMMO;
 import me.athlaeos.valhallammo.configuration.ConfigManager;
-import me.athlaeos.valhallammo.persistence.*;
+import me.athlaeos.valhallammo.persistence.ProfilePersistence;
 import me.athlaeos.valhallammo.persistence.implementations.RedisLockedSQL;
 import me.athlaeos.valhallammo.persistence.implementations.SQL;
 import me.athlaeos.valhallammo.persistence.implementations.SQLite;
 import me.athlaeos.valhallammo.placeholder.PlaceholderRegistry;
+import me.athlaeos.valhallammo.placeholder.placeholders.NumericProfileRawStatPlaceholder;
 import me.athlaeos.valhallammo.placeholder.placeholders.NumericProfileStatPlaceholder;
 import me.athlaeos.valhallammo.placeholder.placeholders.ProfileNextLevelEXPPlaceholder;
 import me.athlaeos.valhallammo.placeholder.placeholders.ProfileNextLevelPlaceholder;
@@ -17,7 +18,6 @@ import me.athlaeos.valhallammo.playerstats.LeaderboardManager;
 import me.athlaeos.valhallammo.playerstats.format.StatFormat;
 import me.athlaeos.valhallammo.playerstats.profiles.implementations.*;
 import me.athlaeos.valhallammo.skills.skills.Skill;
-import me.athlaeos.valhallammo.utility.Timer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerEvent;
 
@@ -28,6 +28,7 @@ public class ProfileRegistry {
     private static ProfilePersistence persistence = null;
     private static final int delay_profile_saving = ConfigManager.getConfig("config.yml").reload().get().getInt("db_persist_delay");
     private static Map<Class<? extends Profile>, Profile> registeredProfiles = Collections.unmodifiableMap(new HashMap<>());
+    private static Map<String, ConfigurableProfile> registeredConfigurableProfiles = new HashMap<>();
     private static final boolean savingProfilesMessage = ValhallaMMO.getPluginConfig().getBoolean("saving_profiles_notification");
 
     public static void registerDefaultProfiles(){
@@ -54,21 +55,46 @@ public class ProfileRegistry {
      * @param p the profile to persist. Any profile properties or owner is not relevant here and may be null.
      */
     public static void registerProfileType(Profile p){
-        ClassToInstanceMap<Profile> profiles = MutableClassToInstanceMap.create(new HashMap<>(registeredProfiles));
-        profiles.put(p.getClass(), p);
-        registeredProfiles = ImmutableClassToInstanceMap.copyOf(profiles);
+        if (p instanceof ConfigurableProfile c){
+            return;
+        } else {
+            ClassToInstanceMap<Profile> profiles = MutableClassToInstanceMap.create(new HashMap<>(registeredProfiles));
+            profiles.put(p.getClass(), p);
+            registeredProfiles = ImmutableClassToInstanceMap.copyOf(profiles);
+        }
         p.initStats();
         p.registerPerkRewards();
 
         persistence.createProfileTable(p);
 
+        String statName = p.getClass().getSimpleName().toLowerCase(Locale.US);
         for (String numberStat : p.getNumberStatProperties().keySet()) {
             StatFormat format = p.getNumberStatProperties().get(numberStat).getFormat();
             if (format == null) continue;
-            PlaceholderRegistry.registerPlaceholder(new NumericProfileStatPlaceholder("%" + p.getClass().getSimpleName().toLowerCase(Locale.US) + "_" + numberStat.toLowerCase(Locale.US) + "%", p.getClass(), numberStat, format));
+            PlaceholderRegistry.registerPlaceholder(new NumericProfileStatPlaceholder("%" + statName + "_" + numberStat.toLowerCase(Locale.US) + "%", p.getClass(), numberStat, format));
+            PlaceholderRegistry.registerPlaceholder(new NumericProfileRawStatPlaceholder("%" + statName + "_raw_" + numberStat.toLowerCase(Locale.US) + "%", p.getClass(), numberStat));
         }
-        PlaceholderRegistry.registerPlaceholder(new ProfileNextLevelPlaceholder("%" + p.getClass().getSimpleName().toLowerCase(Locale.US) + "_next_level%", p.getClass(), StatFormat.INT));
-        PlaceholderRegistry.registerPlaceholder(new ProfileNextLevelEXPPlaceholder("%" + p.getClass().getSimpleName().toLowerCase(Locale.US) + "_next_level_exp%", p.getClass(), StatFormat.INT));
+        PlaceholderRegistry.registerPlaceholder(new ProfileNextLevelPlaceholder("%" + statName + "_next_level%", p.getClass(), StatFormat.INT));
+        PlaceholderRegistry.registerPlaceholder(new ProfileNextLevelEXPPlaceholder("%" + statName + "_next_level_exp%", p.getClass(), StatFormat.INT));
+    }
+
+    public static void registerConfigurableProfileType(ConfigurableProfile profile){
+        registeredConfigurableProfiles.put(profile.getSkillTypeName(), profile);
+
+        profile.initStats();
+        profile.registerPerkRewards();
+
+        persistence.createProfileTable(profile);
+
+        String statName = profile.getSkillTypeName().toLowerCase(Locale.US);
+        for (String numberStat : profile.getNumberStatProperties().keySet()) {
+            StatFormat format = profile.getNumberStatProperties().get(numberStat).getFormat();
+            if (format == null) continue;
+            PlaceholderRegistry.registerPlaceholder(new NumericProfileStatPlaceholder("%" + statName + "_" + numberStat.toLowerCase(Locale.US) + "%", profile.getSkillTypeName(), numberStat, format));
+            PlaceholderRegistry.registerPlaceholder(new NumericProfileRawStatPlaceholder("%" + statName + "_raw_" + numberStat.toLowerCase(Locale.US) + "%", profile.getSkillTypeName(), numberStat));
+        }
+        PlaceholderRegistry.registerPlaceholder(new ProfileNextLevelPlaceholder("%" + statName + "_next_level%", profile.getSkillTypeName(), StatFormat.INT));
+        PlaceholderRegistry.registerPlaceholder(new ProfileNextLevelEXPPlaceholder("%" + statName + "_next_level_exp%", profile.getSkillTypeName(), StatFormat.INT));
     }
 
     private static long lastSaved = 0;
@@ -167,6 +193,15 @@ public class ProfileRegistry {
         setSkillProfile(p, getBlankProfile(p, type), type);
     }
 
+
+    public static void setPersistentConfigurableProfile(Player p, ConfigurableProfile profile, String type) {
+        persistence.trySetPersistentConfigurableProfile(p.getUniqueId(), profile, type);
+    }
+
+    public static void setBlankSkillConfigurableProfile(Player p, String type) {
+        setSkillConfigurableProfile(p, getBlankConfigurableProfile(p, type), type);
+    }
+
     /**
      * Sets a profile as the player's skill profile.
      * Skill profiles are profiles that aren't persisted, where its stats and contents are calculated when the player
@@ -183,6 +218,10 @@ public class ProfileRegistry {
         persistence.trySetSkillProfile(p.getUniqueId(), profile, type);
     }
 
+    public static void setSkillConfigurableProfile(Player p, ConfigurableProfile profile, String type) {
+        persistence.trySetSkillConfigurableProfile(p.getUniqueId(), profile, type);
+    }
+
     public static <P extends Profile> P getPersistentProfile(Player p, Class<P> type) {
         P profile = persistence.getPersistentProfile(p.getUniqueId(), type);
         return profile == null ? getBlankProfile(p, type) : profile;
@@ -193,11 +232,27 @@ public class ProfileRegistry {
         return profile == null ? getBlankProfile(p, type) : profile;
     }
 
+    public static ConfigurableProfile getPersistentConfigurableProfile(Player p, String type) {
+        ConfigurableProfile profile = persistence.getPersistentConfigurableProfile(p.getUniqueId(), type);
+        return profile == null ? getBlankConfigurableProfile(p, type) : profile;
+    }
+
+    public static ConfigurableProfile getSkillConfigurableProfile(Player p, String type) {
+        ConfigurableProfile profile = persistence.getSkillConfigurableProfile(p.getUniqueId(), type);
+        return profile == null ? getBlankConfigurableProfile(p, type) : profile;
+    }
+
     @SuppressWarnings("unchecked")
     public static <P extends Profile> P getMergedProfile(Player p, Class<P> type) {
         P p1 = getPersistentProfile(p, type);
         P p2 = getSkillProfile(p, type);
         return (P) p2.merge(p1, p);
+    }
+
+    public static ConfigurableProfile getMergedConfigurableProfile(Player p, String type) {
+        ConfigurableProfile p1 = getPersistentConfigurableProfile(p, type);
+        ConfigurableProfile p2 = getSkillConfigurableProfile(p, type);
+        return (ConfigurableProfile) p2.merge(p1, p);
     }
 
     /**
@@ -217,10 +272,23 @@ public class ProfileRegistry {
         return getBlankProfile(owner.getUniqueId(), type);
     }
 
+    public static ConfigurableProfile getBlankConfigurableProfile(String type){
+        return getBlankConfigurableProfile((UUID) null, type);
+    }
+
+    public static ConfigurableProfile getBlankConfigurableProfile(Player owner, String type){
+        return getBlankConfigurableProfile(owner.getUniqueId(), type);
+    }
+
     @SuppressWarnings("unchecked") // Registered profiles will always match the class type given how registerProfileType() works
     public static <P extends Profile> P getBlankProfile(UUID owner, Class<P> type){
         if (!registeredProfiles.containsKey(type)) throw new IllegalArgumentException("Profile type " + type.getSimpleName() + " was not yet registered for usage");
         return (P) registeredProfiles.get(type).getBlankProfile(owner);
+    }
+
+    public static ConfigurableProfile getBlankConfigurableProfile(UUID owner, String type){
+        if (!registeredConfigurableProfiles.containsKey(type)) throw new IllegalArgumentException("Profile type " + type + " was not yet registered for usage");
+        return (ConfigurableProfile) registeredConfigurableProfiles.get(type).getBlankProfile(owner);
     }
 
     public static void reset(Player p, ResetType type) {
@@ -231,11 +299,26 @@ public class ProfileRegistry {
         persistence.resetSkillProgress(p, type);
     }
 
+    public static void resetConfigurableSkill(Player p, String type) {
+        persistence.resetConfigurableSkillProgress(p, type);
+    }
+
     @SuppressWarnings("unchecked")
     public static <P extends Profile> P copyDefaultStats(P profile) {
         P defaultProfile = (P) registeredProfiles.get(profile.getClass());
         if (defaultProfile == null) return profile;
         profile.copyStats(defaultProfile);
         return profile;
+    }
+
+    public static ConfigurableProfile copyDefaultStats(ConfigurableProfile profile) {
+        ConfigurableProfile defaultProfile = registeredConfigurableProfiles.get(profile.getSkillTypeName());
+        if (defaultProfile == null) return profile;
+        profile.copyStats(defaultProfile);
+        return profile;
+    }
+
+    public static Map<String, ConfigurableProfile> getRegisteredConfigurableProfiles() {
+        return registeredConfigurableProfiles;
     }
 }

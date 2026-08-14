@@ -4,8 +4,6 @@ import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.collect.ClassToInstanceMap;
 import com.google.common.collect.MutableClassToInstanceMap;
-import com.ibm.icu.text.DecimalFormatSymbols;
-import com.ibm.icu.text.NumberingSystem;
 import me.athlaeos.valhallammo.ValhallaMMO;
 import me.athlaeos.valhallammo.dom.Pair;
 import me.athlaeos.valhallammo.listeners.JoinLeaveListener;
@@ -17,11 +15,13 @@ import me.athlaeos.valhallammo.playerstats.profiles.Profile;
 import me.athlaeos.valhallammo.playerstats.profiles.ProfileCache;
 import me.athlaeos.valhallammo.playerstats.profiles.ProfileRegistry;
 import me.athlaeos.valhallammo.playerstats.profiles.ResetType;
+import me.athlaeos.valhallammo.playerstats.profiles.implementations.ConfigurableProfile;
 import me.athlaeos.valhallammo.playerstats.profiles.implementations.PowerProfile;
 import me.athlaeos.valhallammo.skills.perkresourcecost.ResourceExpense;
 import me.athlaeos.valhallammo.skills.skills.Perk;
 import me.athlaeos.valhallammo.skills.skills.Skill;
 import me.athlaeos.valhallammo.skills.skills.SkillRegistry;
+import me.athlaeos.valhallammo.skills.skills.implementations.ConfigurableSkill;
 import me.athlaeos.valhallammo.utility.Utils;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -31,7 +31,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.text.DecimalFormat;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
@@ -39,11 +38,16 @@ import java.util.stream.Collectors;
 
 public abstract class ProfilePersistence {
     private static final Map<UUID, Collection<Class<? extends Profile>>> PROFILES_TO_SAVE = new HashMap<>();
+    private static final Map<UUID, Collection<String>> CONFIGURABLE_PROFILES_TO_SAVE = new HashMap<>();
 
     public final ScheduledExecutorService profileThreads;
+    public final ScheduledExecutorService configurableProfileThreads;
     protected final AsyncLoadingCache<UUID, ClassToInstanceMap<Profile>> persistentProfiles;
+    protected final AsyncLoadingCache<UUID, Map<String, ConfigurableProfile>> persistentConfigurableProfiles;
     protected final Map<UUID, ClassToInstanceMap<Profile>> skillProfiles;
+    protected final Map<UUID, Map<String, ConfigurableProfile>> skillConfigurableProfiles;
     protected final Set<UUID> saving = new HashSet<>();
+    protected final Set<UUID> savingConfigurable = new HashSet<>();
 
     protected ProfilePersistence() {
         int timeout = ValhallaMMO.getPluginConfig().getInt("profile-thread-timeout", 180000);
@@ -57,12 +61,26 @@ public abstract class ProfilePersistence {
         persistentProfiles = Caffeine.newBuilder()
                 .executor(profileThreads)
                 .buildAsync((uuid, executor) -> CompletableFuture.supplyAsync(() -> loadProfile(uuid), executor));
+        configurableProfileThreads = Utils.threadPool("ConfigurableProfile", timeout, false, threads);
+        persistentConfigurableProfiles = Caffeine.newBuilder()
+                .executor(configurableProfileThreads)
+                .buildAsync((uuid, executor) -> CompletableFuture.supplyAsync(() -> loadConfigurableProfile(uuid), executor));
         skillProfiles = new HashMap<>();
+        skillConfigurableProfiles = new HashMap<>();
     }
 
     public void requestProfile(UUID p) {
         persistentProfiles.get(p).exceptionally(ex -> {
             ValhallaMMO.logWarning("Exception when trying to load profile for " + p + ": ");
+            ex.printStackTrace();
+            Player player = Bukkit.getPlayer(p);
+            if (player != null) {
+                Utils.sendMessage(player, TranslationManager.getTranslation("status_profiles_load_failed"));
+            }
+            return null;
+        });
+        persistentConfigurableProfiles.get(p).exceptionally(ex -> {
+            ValhallaMMO.logWarning("Exception when trying to load configurable profile for " + p + ": ");
             ex.printStackTrace();
             Player player = Bukkit.getPlayer(p);
             if (player != null) {
@@ -228,20 +246,38 @@ public abstract class ProfilePersistence {
             }
             profiles.put(clazz, profile);
         }
+        updateProfileStats(uuid, runPersistentStartingPerks);
+        return profiles;
+    }
+
+    public Map<String, ConfigurableProfile> loadConfigurableProfile(UUID uuid) {
+        Map<String, ConfigurableProfile> profiles = new HashMap<>();
+        boolean runPersistentStartingPerks = false;
+        for (String type : ProfileRegistry.getRegisteredConfigurableProfiles().keySet()) {
+            ConfigurableProfile profile = ProfileRegistry.getBlankConfigurableProfile(uuid, type);
+            if (!fillProfile(uuid, profile)) {
+                runPersistentStartingPerks = true;
+            }
+            profiles.put(type, profile);
+        }
+        updateProfileStats(uuid, runPersistentStartingPerks);
+        return profiles;
+    }
+
+    public void updateProfileStats(UUID uuid, boolean withPersistentPerks){
         AccumulativeStatManager.resetAllCaches(uuid);
         JoinLeaveListener.getLoadedProfiles().add(uuid);
-        boolean finalRunPersistentStartingPerks = runPersistentStartingPerks;
         Bukkit.getScheduler().runTask(ValhallaMMO.getInstance(), () -> {
             Player player = Bukkit.getPlayer(uuid);
             if (player != null) {
                 skillProfiles.remove(player.getUniqueId());
+                skillConfigurableProfiles.remove(player.getUniqueId());
                 Utils.sendMessage(player, TranslationManager.getTranslation("status_profiles_loaded"));
-                SkillRegistry.updateSkillProgression(player, finalRunPersistentStartingPerks);
+                SkillRegistry.updateSkillProgression(player, withPersistentPerks);
             } else {
                 uncacheProfile(uuid);
             }
         });
-        return profiles;
     }
 
     public void saveAllProfiles(boolean async) {
@@ -250,6 +286,13 @@ public abstract class ProfilePersistence {
                 saveProfileAsync(uuid);
             } else {
                 saveProfile(uuid, true);
+            }
+        }
+        for (UUID uuid : persistentConfigurableProfiles.asMap().keySet()) {
+            if (async) {
+                saveConfigurableProfileAsync(uuid);
+            } else {
+                saveConfigurableProfile(uuid, true);
             }
         }
     }
@@ -263,6 +306,18 @@ public abstract class ProfilePersistence {
                 ex.printStackTrace();
             }
             saving.remove(p);
+        });
+    }
+
+    public void saveConfigurableProfileAsync(UUID p) {
+        if (!savingConfigurable.add(p)) return;
+
+        CompletableFuture.runAsync(() -> saveConfigurableProfile(p, false), configurableProfileThreads).whenComplete((ignored, ex) -> {
+            if (ex != null) {
+                ValhallaMMO.logWarning("Exception when trying to save configurable profile for " + p + ": ");
+                ex.printStackTrace();
+            }
+            savingConfigurable.remove(p);
         });
     }
 
@@ -287,16 +342,38 @@ public abstract class ProfilePersistence {
         }
     }
 
+    public void saveConfigurableProfile(UUID p, boolean localLock) {
+        if (!isConfigurableProfilesLoaded(p)) return;
+        else if (localLock && !savingConfigurable.add(p)) return;
+
+        Map<String, ConfigurableProfile> configurableProfiles = persistentConfigurableProfiles.get(p).join();
+        for (ConfigurableProfile profile : configurableProfiles.values()) {
+            if (shouldPersist(profile)) insertOrUpdateProfile(p, profile);
+        }
+
+        if (localLock) {
+            savingConfigurable.remove(p);
+        }
+        Player player = Bukkit.getPlayer(p);
+        if (player == null || !player.isOnline()) {
+            uncacheProfile(p);
+        }
+    }
+
     public void uncacheProfile(UUID p) {
         persistentProfiles.synchronous().invalidate(p);
+        persistentConfigurableProfiles.synchronous().invalidate(p);
         skillProfiles.remove(p);
+        skillConfigurableProfiles.remove(p);
         JoinLeaveListener.getLoadedProfiles().remove(p);
         ProfileCache.resetCache(p);
     }
 
     public void uncacheAllProfiles() {
         persistentProfiles.synchronous().invalidateAll();
+        persistentConfigurableProfiles.synchronous().invalidateAll();
         skillProfiles.clear();
+        skillConfigurableProfiles.clear();
         JoinLeaveListener.getLoadedProfiles().clear();
         ProfileCache.resetAllCaches();
     }
@@ -309,6 +386,11 @@ public abstract class ProfilePersistence {
 
     public boolean isLoaded(UUID p) {
         CompletableFuture<ClassToInstanceMap<Profile>> future = persistentProfiles.getIfPresent(p);
+        return future != null && future.isDone();
+    }
+
+    public boolean isConfigurableProfilesLoaded(UUID p) {
+        CompletableFuture<Map<String, ConfigurableProfile>> future = persistentConfigurableProfiles.getIfPresent(p);
         return future != null && future.isDone();
     }
 
@@ -327,6 +409,21 @@ public abstract class ProfilePersistence {
         }
     }
 
+    public <T extends Profile> void trySetPersistentConfigurableProfile(UUID p, ConfigurableProfile profile, String type) {
+        if (type.equals(profile.getSkillTypeName())) {
+            setPersistentConfigurableProfile(p, profile, type);
+        } else {
+            ValhallaMMO.logWarning("Tried to set persistent configurable profile of type " + type + " for player " + p + ", but the profile is of type " + profile.getClass().getSimpleName() + ". This is likely a bug in the plugin, please report it.");
+        }
+    }
+    public <T extends Profile> void trySetSkillConfigurableProfile(UUID p, ConfigurableProfile profile, String type) {
+        if (type.equals(profile.getSkillTypeName())) {
+            setSkillConfigurableProfile(p, profile, type);
+        } else {
+            ValhallaMMO.logWarning("Tried to set skill profile of type " + type + " for player " + p + ", but the profile is of type " + profile.getClass().getSimpleName() + ". This is likely a bug in the plugin, please report it.");
+        }
+    }
+
     public <T extends Profile> void setPersistentProfile(UUID p, T profile, Class<T> type) {
         ClassToInstanceMap<Profile> profiles = persistentProfiles.get(p).join();
         profiles.put(type, profile);
@@ -339,31 +436,42 @@ public abstract class ProfilePersistence {
         skillProfiles.put(p, profiles);
     }
 
+    public void setPersistentConfigurableProfile(UUID p, ConfigurableProfile profile, String type) {
+        Map<String, ConfigurableProfile> profiles = persistentConfigurableProfiles.get(p).join();
+        profiles.put(type, profile);
+        persistentConfigurableProfiles.put(p, CompletableFuture.completedFuture(profiles));
+        scheduleConfigurableProfilePersisting(p, type);
+    }
+
+    public void setSkillConfigurableProfile(UUID p, ConfigurableProfile profile, String type) {
+        Map<String, ConfigurableProfile> profiles = skillConfigurableProfiles.getOrDefault(p, new HashMap<>());
+        profiles.put(type, profile);
+        skillConfigurableProfiles.put(p, profiles);
+    }
+
     public <T extends Profile> T getPersistentProfile(UUID p, Class<T> type) {
         CompletableFuture<ClassToInstanceMap<Profile>> future = persistentProfiles.getIfPresent(p);
         if (future == null || !future.isDone()) return null; // Profile not loaded yet
         ClassToInstanceMap<Profile> profiles = future.join();
         return profiles == null ? null : profiles.getInstance(type);
     }
+
     public <T extends Profile> T getSkillProfile(UUID p, Class<T> type) {
         ClassToInstanceMap<Profile> profiles = skillProfiles.get(p);
-//        if (profiles == null && isLoaded(p)) {
-//            Player player = Bukkit.getPlayer(p);
-//            if (player != null) {
-//                profiles = MutableClassToInstanceMap.create();
-//                for (Class<? extends Profile> pr : ProfileRegistry.getRegisteredProfiles().keySet()){
-//                    Profile instance = ProfileRegistry.getBlankProfile(p, pr);
-//                    profiles.put(pr, instance);
-//                }
-//                skillProfiles.put(p, profiles);
-//                SkillRegistry.updateSkillProgression(player, false);
-//                ValhallaMMO.logWarning("An experimental method of stat recalculation was used on " + player.getName() + " to ensure they still have the stats they are supposed to (as opposed to nothing). Please keep an eye out for issues and report them to me :)");
-//            }
-//        }
         return profiles == null ? null : profiles.getInstance(type);
     }
 
+    public ConfigurableProfile getPersistentConfigurableProfile(UUID p, String type) {
+        CompletableFuture<Map<String, ConfigurableProfile>> future = persistentConfigurableProfiles.getIfPresent(p);
+        if (future == null || !future.isDone()) return null; // Profile not loaded yet
+        Map<String, ConfigurableProfile> profiles = future.join();
+        return profiles == null ? null : profiles.get(type);
+    }
 
+    public ConfigurableProfile getSkillConfigurableProfile(UUID p, String type) {
+        Map<String, ConfigurableProfile> profiles = skillConfigurableProfiles.get(p);
+        return profiles == null ? null : profiles.get(type);
+    }
 
     public Map<Integer, LeaderboardEntry> queryLeaderboardEntries(LeaderboardManager.Leaderboard leaderboard) {
         Map<Integer, LeaderboardEntry> entries = new HashMap<>();
@@ -411,6 +519,20 @@ public abstract class ProfilePersistence {
                     runPersistentStartingPerks = true;
                     trySetPersistentProfile(uuid, resetProfile, profileType.getClass());
                 }
+                for (ConfigurableProfile profileType : ProfileRegistry.getRegisteredConfigurableProfiles().values()) {
+                    ConfigurableProfile persistentProfile = ProfileRegistry.getPersistentProfile(p, profileType.getClass());
+                    double totalEXP = persistentProfile.getTotalEXP();
+                    double EXP = persistentProfile.getEXP();
+                    int level = persistentProfile.getLevel();
+                    int ngPlus = persistentProfile.getNewGamePlus();
+                    ConfigurableProfile resetProfile = (ConfigurableProfile) profileType.getBlankProfile(p.getUniqueId());
+                    resetProfile.setTotalEXP(totalEXP);
+                    resetProfile.setEXP(EXP);
+                    resetProfile.setLevel(level);
+                    resetProfile.setNewGamePlus(ngPlus);
+                    runPersistentStartingPerks = true;
+                    trySetPersistentConfigurableProfile(uuid, resetProfile, profileType.getSkillTypeName());
+                }
                 markProfilesReset(p.getUniqueId(), ProfileRegistry.getRegisteredProfiles().keySet());
             }
             case SKILLS_ONLY -> {
@@ -425,13 +547,30 @@ public abstract class ProfilePersistence {
                     profile.setNewGamePlus(0);
                     trySetPersistentProfile(uuid, profile, profileType.getClass());
 
-                    Skill associatedSkill = SkillRegistry.getSkill(profileType.getSkillType());
+                    Skill associatedSkill = SkillRegistry.getSkill(profileType.getSkillTypeName());
                     associatedSkill.getPerks().forEach(perk -> {
                         Collection<String> unlockedPerks = powerProfile.getUnlockedPerks();
                         unlockedPerks.remove(perk.getName());
                         powerProfile.setUnlockedPerks(unlockedPerks);
                     });
                     trySetSkillProfile(uuid, profileType.getBlankProfile(p), profileType.getClass());
+                }
+                for (ConfigurableProfile profileType : ProfileRegistry.getRegisteredConfigurableProfiles().values()) {
+                    // setting persistent properties to 0, removing perks from unlocked perks and permalocked perks
+                    ConfigurableProfile profile = getPersistentConfigurableProfile(uuid, profileType.getSkillTypeName());
+                    profile.setEXP(0);
+                    profile.setTotalEXP(0);
+                    profile.setLevel(0);
+                    profile.setNewGamePlus(0);
+                    trySetPersistentConfigurableProfile(uuid, profile, profileType.getSkillTypeName());
+
+                    Skill associatedSkill = SkillRegistry.getSkill(profileType.getSkillTypeName());
+                    associatedSkill.getPerks().forEach(perk -> {
+                        Collection<String> unlockedPerks = powerProfile.getUnlockedPerks();
+                        unlockedPerks.remove(perk.getName());
+                        powerProfile.setUnlockedPerks(unlockedPerks);
+                    });
+                    trySetSkillConfigurableProfile(uuid, (ConfigurableProfile) profileType.getBlankProfile(p), profileType.getSkillTypeName());
                 }
                 setPersistentProfile(uuid, powerProfile, PowerProfile.class);
                 markProfilesReset(p.getUniqueId(), ProfileRegistry.getRegisteredProfiles().keySet());
@@ -441,6 +580,10 @@ public abstract class ProfilePersistence {
                 for (Profile profileType : ProfileRegistry.getRegisteredProfiles().values()) {
                     trySetPersistentProfile(uuid, profileType.getBlankProfile(p), profileType.getClass());
                     trySetSkillProfile(uuid, profileType.getBlankProfile(p), profileType.getClass());
+                }
+                for (ConfigurableProfile profileType : ProfileRegistry.getRegisteredConfigurableProfiles().values()) {
+                    trySetPersistentConfigurableProfile(uuid, (ConfigurableProfile) profileType.getBlankProfile(p), profileType.getSkillTypeName());
+                    trySetSkillConfigurableProfile(uuid, (ConfigurableProfile) profileType.getBlankProfile(p), profileType.getSkillTypeName());
                 }
                 runPersistentStartingPerks = true;
                 markProfilesReset(p.getUniqueId(), ProfileRegistry.getRegisteredProfiles().keySet());
@@ -457,6 +600,9 @@ public abstract class ProfilePersistence {
                 for (Profile profileType : ProfileRegistry.getRegisteredProfiles().values()) {
                     if (profileType instanceof PowerProfile) continue;
                     trySetSkillProfile(uuid, profileType.getBlankProfile(p), profileType.getClass());
+                }
+                for (ConfigurableProfile profileType : ProfileRegistry.getRegisteredConfigurableProfiles().values()) {
+                    trySetSkillConfigurableProfile(uuid, (ConfigurableProfile) profileType.getBlankProfile(p), profileType.getSkillTypeName());
                 }
                 markProfilesReset(p.getUniqueId(), ProfileRegistry.getRegisteredProfiles().keySet());
             }
@@ -497,6 +643,40 @@ public abstract class ProfilePersistence {
         markProfilesReset(p.getUniqueId(), profilesToReset);
     }
 
+    public void resetConfigurableSkillProgress(Player p, String type) {
+        UUID uuid = p.getUniqueId();
+        PowerProfile powerProfile = ProfileRegistry.getPersistentProfile(p, PowerProfile.class);
+        Skill associatedSkill = SkillRegistry.getSkill(type);
+        if (!(associatedSkill instanceof ConfigurableSkill c)) throw new IllegalArgumentException("Invalid configurable skill type given");
+
+        ConfigurableProfile profile = getPersistentConfigurableProfile(uuid, c.getType());
+        profile.setEXP(0);
+        profile.setLevel(0);
+        trySetPersistentConfigurableProfile(uuid, profile, c.getType());
+
+        Collection<String> unlockedPerks = powerProfile.getUnlockedPerks();
+        Collection<String> unlockedPerksCopy = new HashSet<>(powerProfile.getUnlockedPerks());
+        unlockedPerks.removeAll(associatedSkill.getPerks().stream().map(Perk::getName).collect(Collectors.toSet()));
+        powerProfile.setUnlockedPerks(unlockedPerks);
+        setPersistentProfile(uuid, powerProfile, PowerProfile.class);
+
+        List<Perk> invertedPerks = new ArrayList<>(associatedSkill.getPerks());
+        Collections.reverse(invertedPerks);
+        invertedPerks.forEach(perk -> {
+            if (!unlockedPerksCopy.contains(perk.getName())) return;
+            for (ResourceExpense expense : perk.getExpenses()){
+                if (!expense.isRefundable()) continue;
+                expense.refund(p);
+            }
+        });
+
+        trySetSkillConfigurableProfile(uuid, (ConfigurableProfile) profile.getBlankProfile(uuid), c.getType());
+        SkillRegistry.updateSkillProgression(p, false);
+        Collection<String> profilesToReset = resetConfigurableProfiles.getOrDefault(p.getUniqueId(), new HashSet<>());
+        profilesToReset.add(profile.getSkillTypeName());
+        markConfigurableProfilesReset(p.getUniqueId(), profilesToReset);
+    }
+
     /**
      * Tells the plugin that this profile type of a player should be persisted, even if the profile doesn't meet the necessary EXP requirements
      * @param p the player who's profile should be saved
@@ -508,7 +688,14 @@ public abstract class ProfilePersistence {
         PROFILES_TO_SAVE.put(p, types);
     }
 
+    public static void scheduleConfigurableProfilePersisting(UUID p, String type){
+        Collection<String> types = CONFIGURABLE_PROFILES_TO_SAVE.getOrDefault(p, new HashSet<>());
+        types.add(type);
+        CONFIGURABLE_PROFILES_TO_SAVE.put(p, types);
+    }
+
     private static final Map<UUID, Collection<Class<? extends Profile>>> resetProfiles = new HashMap<>();
+    private static final Map<UUID, Collection<String>> resetConfigurableProfiles = new HashMap<>();
 
     @SuppressWarnings("all")
     public boolean shouldPersist(Profile profile){
@@ -523,6 +710,19 @@ public abstract class ProfilePersistence {
         return PROFILES_TO_SAVE.getOrDefault(profile.getOwner(), Set.of()).contains(profile.getClass());
     }
 
+    public boolean shouldPersist(ConfigurableProfile profile){
+        Collection<String> profilesToReset = resetConfigurableProfiles.getOrDefault(profile.getOwner(), new HashSet<>());
+        if (profilesToReset.contains(profile.getSkillTypeName())) {
+            profilesToReset.remove(profile.getSkillTypeName());
+            resetConfigurableProfiles.put(profile.getOwner(), profilesToReset);
+            return true;
+        }
+        if (profile.getOwner() == null || (profile.getLevel() == 0 && profile.getNewGamePlus() == 0 && !profile.shouldForcePersist())) {
+            return false;
+        }
+        return CONFIGURABLE_PROFILES_TO_SAVE.getOrDefault(profile.getOwner(), Set.of()).contains(profile.getSkillTypeName());
+    }
+
     public static String serializeStringSet(Collection<String> stringSet) {
         return String.join("<>", stringSet);
     }
@@ -535,6 +735,10 @@ public abstract class ProfilePersistence {
 
     public static void markProfilesReset(UUID owner, Collection<Class<? extends Profile>> profileTypes){
         resetProfiles.put(owner, profileTypes);
+    }
+
+    public static void markConfigurableProfilesReset(UUID owner, Collection<String> profileTypes){
+        resetConfigurableProfiles.put(owner, profileTypes);
     }
 }
 

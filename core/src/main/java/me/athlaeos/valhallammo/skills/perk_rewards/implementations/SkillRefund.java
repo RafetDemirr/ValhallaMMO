@@ -60,6 +60,6 @@ public class SkillRefund extends PerkReward {
 
     @Override
     public List<String> getTabAutoComplete(String currentArg) {
-        return SkillRegistry.getAllSkills().values().stream().map(Skill::getType).toList();
+        return SkillRegistry.getAllSkillsByType().values().stream().map(Skill::getType).toList();
     }
 }

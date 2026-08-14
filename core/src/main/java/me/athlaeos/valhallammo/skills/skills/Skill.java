@@ -21,6 +21,7 @@ import me.athlaeos.valhallammo.playerstats.profiles.ProfileRegistry;
 import me.athlaeos.valhallammo.playerstats.profiles.implementations.PowerProfile;
 import me.athlaeos.valhallammo.skills.perkunlockconditions.UnlockCondition;
 import me.athlaeos.valhallammo.skills.perkunlockconditions.UnlockConditionRegistry;
+import me.athlaeos.valhallammo.skills.skills.implementations.ConfigurableSkill;
 import me.athlaeos.valhallammo.skills.skills.implementations.PowerSkill;
 import me.athlaeos.valhallammo.utility.BossBarUtils;
 import me.athlaeos.valhallammo.utility.ItemUtils;
@@ -859,7 +860,7 @@ public abstract class Skill {
     }
 
     public void updateSkillStats(Player p, boolean runPersistentStartingPerks) {
-        Profile persistentProfile = ProfileRegistry.getPersistentProfile(p, getProfileType());
+        Profile persistentProfile = this instanceof ConfigurableSkill c ? ProfileRegistry.getPersistentConfigurableProfile(p, c.getType()) : ProfileRegistry.getPersistentProfile(p, getProfileType());
         int level = persistentProfile.getLevel();
         PowerProfile powerProfile = ProfileRegistry.getPersistentProfile(p, PowerProfile.class);
 

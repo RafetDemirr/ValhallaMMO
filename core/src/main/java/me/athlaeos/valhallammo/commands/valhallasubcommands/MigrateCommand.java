@@ -8,6 +8,7 @@ import me.athlaeos.valhallammo.persistence.implementations.SQL;
 import me.athlaeos.valhallammo.persistence.implementations.SQLite;
 import me.athlaeos.valhallammo.playerstats.profiles.Profile;
 import me.athlaeos.valhallammo.playerstats.profiles.ProfileRegistry;
+import me.athlaeos.valhallammo.playerstats.profiles.implementations.ConfigurableProfile;
 import me.athlaeos.valhallammo.utility.Utils;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -81,6 +82,11 @@ public class MigrateCommand implements Command {
                     ClassToInstanceMap<Profile> profiles = previous.loadProfile(playerUUID);
                     for (Profile profile : profiles.values()) {
                         current.trySetPersistentProfile(playerUUID, profile, profile.getClass());
+                    }
+
+                    Map<String, ConfigurableProfile> configurableProfiles = previous.loadConfigurableProfile(playerUUID);
+                    for (ConfigurableProfile profile : configurableProfiles.values()) {
+                        current.trySetPersistentConfigurableProfile(playerUUID, profile, profile.getSkillTypeName());
                     }
 
                     if (++players % 25 == 0) {

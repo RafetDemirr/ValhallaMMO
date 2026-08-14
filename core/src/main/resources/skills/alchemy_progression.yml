@@ -247,11 +247,12 @@ perks:
       - heavyweapons_perk_3
     requireperk_all:
       - alchemy_perk_2
-    '1':
-      position: '2,3'
-      locked: GRAY_DYE:1172700
-      unlockable: ORANGE_DYE:1172800
-      unlocked: LIME_DYE:1172900
+    connection_line:
+      '1':
+        position: '2,3'
+        locked: GRAY_DYE:1172700
+        unlockable: ORANGE_DYE:1172800
+        unlocked: LIME_DYE:1172900
   alchemy_perk_ng1:
     icon: TOTEM_OF_UNDYING
     coords: "2,-1"
