@@ -297,7 +297,8 @@ public class EntityAttackListener implements Listener {
 
                 // custom crit mechanics
                 // the crit mechanic fetches the victim's crit chance and damage resistance stats and so sweeping hits should not be able to crit
-                if (attackCooldown >= 0.9 && (!(trueDamager instanceof Player p) || !WorldGuardHook.inDisabledRegion(v.getLocation(), p, WorldGuardHook.VMMO_COMBAT_CRIT))){
+                // frustratingly, the attack cooldown is lowered to below this 0.9 threshold before it is read in this event, causing it to always be low and preventing crits entirely
+                if (/*attackCooldown >= 0.9 && */(cause == null || !cause.equals("BLEED")) && (!(trueDamager instanceof Player p) || !WorldGuardHook.inDisabledRegion(v.getLocation(), p, WorldGuardHook.VMMO_COMBAT_CRIT))){
                     double critChanceResistance = AccumulativeStatManager.getCachedRelationalStats("CRIT_CHANCE_RESISTANCE", v, e.getDamager(), 10000, true);
                     double critChance = AccumulativeStatManager.getCachedRelationalStats("CRIT_CHANCE", v, e.getDamager(), 10000, true) * (1 - critChanceResistance);
                     if (critNextAttack.contains(trueDamager.getUniqueId()) || Utils.proc(critChance, damagerLuck - victimLuck, false)) {
@@ -344,7 +345,8 @@ public class EntityAttackListener implements Listener {
 
                     ValhallaMMO.getInstance().getServer().getScheduler().runTaskLater(ValhallaMMO.getInstance(), () -> {
                         // custom bleed mechanics
-                        if (attackCooldown >= 0.9F){
+                        // again, attack cooldown is broken in recent versions
+                        if (true/*attackCooldown >= 0.9F*/){
                             double bleedChance = AccumulativeStatManager.getCachedRelationalStats("BLEED_CHANCE", v, e.getDamager(), 10000, true);
                             if (bleedNextAttack.contains(trueDamager.getUniqueId()) || Utils.proc(bleedChance, damagerLuck - victimLuck, false)){
                                 bleedNextAttack.remove(trueDamager.getUniqueId());

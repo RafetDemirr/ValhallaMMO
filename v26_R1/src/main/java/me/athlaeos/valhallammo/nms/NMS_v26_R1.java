@@ -552,12 +552,27 @@ public final class NMS_v26_R1 implements NMS {
         }
     }
 
+    private boolean getKeyOrNullDoesNotWork = false;
+
     @Override
     public String getDamageTypeFromEvent(EntityDamageEvent e) {
         if (e.getCause() == EntityDamageEvent.DamageCause.CUSTOM) {
-            NamespacedKey key = e.getDamageSource().getDamageType().getKeyOrNull();
-            if (key == null) return e.getDamageSource().getDamageType().getTranslationKey();
-            return key.toString();
+            if (getKeyOrNullDoesNotWork) {
+                try {
+                    NamespacedKey key = e.getDamageSource().getDamageType().getKeyOrThrow();
+                    return key.toString();
+                } catch (Exception | Error ignored){
+                    return e.getDamageSource().getDamageType().getTranslationKey();
+                }
+            } else {
+                try {
+                    NamespacedKey key = e.getDamageSource().getDamageType().getKeyOrNull();
+                    if (key == null) return e.getDamageSource().getDamageType().getTranslationKey();
+                    return key.toString();
+                } catch (Exception | Error ignored){
+                    getKeyOrNullDoesNotWork = true;
+                }
+            }
         }
         return NMS.super.getDamageTypeFromEvent(e);
     }
