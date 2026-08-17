@@ -9,6 +9,7 @@ import me.athlaeos.valhallammo.playerstats.profiles.ProfileCache;
 import me.athlaeos.valhallammo.playerstats.profiles.ProfileRegistry;
 import me.athlaeos.valhallammo.playerstats.profiles.implementations.PowerProfile;
 import me.athlaeos.valhallammo.skills.perkunlockconditions.UnlockCondition;
+import me.athlaeos.valhallammo.skills.skills.implementations.ConfigurableSkill;
 import me.athlaeos.valhallammo.utility.Utils;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -188,7 +189,7 @@ public class Perk {
     }
 
     public boolean metLevelRequirement(Player p){
-        Profile profile = ProfileRegistry.getPersistentProfile(p, skill.getProfileType());
+        Profile profile = skill instanceof ConfigurableSkill c ? ProfileRegistry.getPersistentConfigurableProfile(p, c.getType()) : ProfileRegistry.getPersistentProfile(p, skill.getProfileType());
         return profile.getLevel() >= levelRequirement;
     }
 

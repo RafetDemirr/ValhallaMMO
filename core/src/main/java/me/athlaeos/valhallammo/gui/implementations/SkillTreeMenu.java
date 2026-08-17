@@ -17,6 +17,7 @@ import me.athlaeos.valhallammo.skills.perkresourcecost.ResourceExpenseRegistry;
 import me.athlaeos.valhallammo.skills.perkunlockconditions.UnlockCondition;
 import me.athlaeos.valhallammo.skills.perkunlockconditions.UnlockConditionRegistry;
 import me.athlaeos.valhallammo.skills.skills.*;
+import me.athlaeos.valhallammo.skills.skills.implementations.ConfigurableSkill;
 import me.athlaeos.valhallammo.skills.skills.implementations.PowerSkill;
 import me.athlaeos.valhallammo.utility.ItemUtils;
 import me.athlaeos.valhallammo.utility.StringUtils;
@@ -270,7 +271,7 @@ public class SkillTreeMenu extends Menu {
                                         .replace("%prestige_numeric%", String.valueOf(acc.getNewGamePlus()))) :
                         ""), playerMenuUtility.getOwner())));
 
-                Profile p = ProfileRegistry.getPersistentProfile(target, s.getProfileType());
+                Profile p = s instanceof ConfigurableSkill c ? ProfileRegistry.getPersistentConfigurableProfile(target, c.getType()) : ProfileRegistry.getPersistentProfile(target, s.getProfileType());
                 double expRequired = s.expForLevel(p.getLevel() + 1);
                 List<String> lore = new ArrayList<>();
                 for (String line : TranslationManager.getListTranslation("skilltree_icon_format")){
