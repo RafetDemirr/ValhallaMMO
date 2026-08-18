@@ -16,6 +16,10 @@ mob_disarming: true # If true, mobs getting disarmed drop their weapon
 player_disarming: false # If true, players getting disarmed will drop their weapon
 player_disarming_item_ownership: true # If disarmed players drop their weapon, and this option is true,
 # only the disarmed player will be able to pick up their weapon again
+grappling_blacklist:
+  - ALLAY
+  - VILLAGER
+  - WANDERING_TRADER
 
 
 meditation_answer:

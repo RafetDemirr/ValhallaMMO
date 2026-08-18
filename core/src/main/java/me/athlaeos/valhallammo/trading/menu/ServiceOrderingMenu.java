@@ -24,6 +24,7 @@ import me.athlaeos.valhallammo.utility.Utils;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Sound;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.ItemFlag;
@@ -105,6 +106,7 @@ public class ServiceOrderingMenu extends Menu {
     public void handleMenu(InventoryClickEvent e) {
         e.setCancelled(true);
         if (e.getClickedInventory() instanceof PlayerInventory) return;
+        if (e.getClick() == ClickType.DOUBLE_CLICK) e.setCancelled(true);
 
         ItemBuilder clicked = ItemUtils.isEmpty(e.getCurrentItem()) ? null : new ItemBuilder(e.getCurrentItem());
         if (clicked == null) return;

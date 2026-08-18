@@ -400,7 +400,7 @@ public class AccumulativeStatManager {
         register("TRADING_MERCHANT_EXPERIENCE_MULTIPLIER", new ProfileStatSource(TradingProfile.class, "merchantExperienceMultiplier"));
         register("TRADING_GIFT_CHANCE", new ProfileStatSource(TradingProfile.class, "tradeGiftChance"), new TradingRenownGiftChanceSource(), new TradingReputationGiftChanceSource());
         register("TRADING_GIFT_COOLDOWN", new ProfileStatSource(TradingProfile.class, "tradeGiftCooldown"));
-        register("TRADING_EXP_GAIN", new ProfileStatSource(TradingProfile.class, "tradingEXPMultiplier"));
+        register("TRADING_EXP_GAIN", new ProfileStatSource(TradingProfile.class, "tradingEXPMultiplier"), new GlobalBuffSource("trading_experience"));
     }
 
     /**

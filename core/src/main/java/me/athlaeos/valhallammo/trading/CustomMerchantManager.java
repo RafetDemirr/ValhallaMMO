@@ -32,10 +32,7 @@ import org.bukkit.Particle;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
-import org.bukkit.entity.AbstractVillager;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
-import org.bukkit.entity.Villager;
+import org.bukkit.entity.*;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.MerchantRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -117,7 +114,7 @@ public class CustomMerchantManager {
     public static List<MerchantData.TradeData> generateRandomTrades(MerchantData data, MerchantType type, Player player){
         if (type == null) return new ArrayList<>();
         List<MerchantData.TradeData> trades = new ArrayList<>();
-        MerchantLevel level = getLevel(data);
+        MerchantLevel level = data.getVillager() instanceof WanderingTrader ? MerchantLevel.MASTER : getLevel(data);
         if (level == null) return trades;
         for (MerchantLevel l : type.getTrades().keySet()){
             if (l.getLevel() > level.getLevel()) continue;
@@ -201,7 +198,7 @@ public class CustomMerchantManager {
 
     public static List<Pair<MerchantTrade, MerchantRecipe>> recipesFromData(MerchantData data, Player player){
         MerchantType type = registeredMerchantTypes.get(data.getType());
-        MerchantLevel level = getLevel(data);
+        MerchantLevel level = data.getVillager() instanceof WanderingTrader ? MerchantLevel.MASTER : getLevel(data);
         if (type == null || level == null) return null;
         if (data.getTrades().isEmpty()) data.setTrades(generateRandomTrades(data, type, player));
         List<Pair<MerchantTrade, MerchantRecipe>> recipes = new ArrayList<>();

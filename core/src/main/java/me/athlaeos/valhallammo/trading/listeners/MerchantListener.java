@@ -213,6 +213,7 @@ public class MerchantListener implements Listener {
                     e.setCancelled(true);
                     return;
                 }
+                if (event.getMerchantData() == null) return;
                 MerchantData.TradeData tradeData = event.getMerchantData().getTrades().get(event.getCustomTrade().getID());
                 if (tradeData == null) return; // should never really happen, but here as a precaution
                 MerchantType type = CustomMerchantManager.getMerchantType(event.getMerchantData().getType());
@@ -468,7 +469,8 @@ public class MerchantListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onMerchantInterfaceOpen(InventoryOpenEvent e) {
-        if (!(e.getInventory() instanceof MerchantInventory m) ||
+        if (e.isCancelled() ||
+                !(e.getInventory() instanceof MerchantInventory m) ||
                 ValhallaMMO.isWorldBlacklisted(e.getPlayer().getWorld().getName())) return;
         if (!(m.getHolder() instanceof AbstractVillager v)) return;
         if (cancelMerchantInventory.contains(v.getUniqueId())) {
@@ -622,8 +624,7 @@ public class MerchantListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onRaidEnd(RaidFinishEvent e){
-        if (e.getRaid().getStatus() != Raid.RaidStatus.VICTORY || e.getRaid().getLocation().getWorld() == null ||
-                ValhallaMMO.isWorldBlacklisted(e.getWorld().getName())) return;
+        if (e.getRaid().getStatus() != Raid.RaidStatus.VICTORY || e.getRaid().getLocation().getWorld() == null || ValhallaMMO.isWorldBlacklisted(e.getWorld().getName())) return;
 
         for (Entity villagerInRange : e.getRaid().getLocation().getWorld().getNearbyEntities(e.getRaid().getLocation(), 128, 128, 128, en -> en instanceof AbstractVillager)){
             AbstractVillager villager = (AbstractVillager) villagerInRange;
@@ -757,7 +758,7 @@ public class MerchantListener implements Listener {
                 } else if (hand.getType() == Material.WANDERING_TRADER_SPAWN_EGG) {
                     WanderingTrader wanderingTrader = e.getPlayer().getWorld().spawn(e.getClickedBlock().getLocation().add(0.5, 1, 0.5), WanderingTrader.class);
                     MerchantData data = CustomMerchantManager.createMerchant(wanderingTrader.getUniqueId(), merchantType, e.getPlayer());
-                    data.setExp(1);
+                    data.setExp(Integer.MAX_VALUE);
                 }
                 e.setCancelled(true);
 
@@ -846,7 +847,7 @@ public class MerchantListener implements Listener {
         MerchantType merchantType = meta == null ? null : CustomMerchantManager.getSummonType(meta);
         if (merchantType == null) return;
         ProfessionWrapper wrapper = CustomMerchantManager.getProfessionFromType(merchantType);
-        if (wrapper == null || wrapper.getProfession() == null) return;
+        if (wrapper == null) return;
         if (e.getRightClicked() instanceof Villager v){
             if (wrapper == ProfessionWrapper.TRAVELING) return;
             v.setProfession(wrapper.getProfession());
@@ -858,7 +859,7 @@ public class MerchantListener implements Listener {
         } else if (e.getRightClicked() instanceof WanderingTrader w){
             if (wrapper == ProfessionWrapper.TRAVELING) return;
             MerchantData data = CustomMerchantManager.createMerchant(w.getUniqueId(), merchantType, e.getPlayer());
-            data.setExp(1);
+            data.setExp(Integer.MAX_VALUE);
         }
         e.setCancelled(true);
 
@@ -866,6 +867,5 @@ public class MerchantListener implements Listener {
         if (e.getPlayer().getGameMode() == GameMode.CREATIVE) return;
         if (hand.getAmount() == 1) e.getPlayer().getInventory().setItem(e.getHand(), null);
         else hand.setAmount(hand.getAmount() - 1);
-        return;
     }
 }

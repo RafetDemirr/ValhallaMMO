@@ -20,6 +20,7 @@ import me.athlaeos.valhallammo.utility.ItemUtils;
 import me.athlaeos.valhallammo.utility.Utils;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.ItemFlag;
@@ -70,6 +71,10 @@ public class ServiceUpgradingMenu extends Menu {
     @Override
     public void handleMenu(InventoryClickEvent e) {
         e.setCancelled(!(e.getClickedInventory() instanceof PlayerInventory));
+        if (e.getClick() == ClickType.DOUBLE_CLICK) {
+            e.setCancelled(true);
+            return;
+        }
         if (e.getRawSlot() == indexCost) return;
         if (e.getRawSlot() == indexPreviousPage) page--;
         else if (e.getRawSlot() == indexNextPage) page++;

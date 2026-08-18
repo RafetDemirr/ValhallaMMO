@@ -24,6 +24,7 @@ import me.athlaeos.valhallammo.utility.ItemUtils;
 import me.athlaeos.valhallammo.utility.Utils;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.ItemStack;
@@ -79,6 +80,7 @@ public class ServiceTrainingMenu extends Menu {
     public void handleMenu(InventoryClickEvent e) {
         e.setCancelled(true);
         if (e.getClickedInventory() instanceof PlayerInventory) return;
+        if (e.getClick() == ClickType.DOUBLE_CLICK) e.setCancelled(true);
 
         ItemBuilder clicked = ItemUtils.isEmpty(e.getCurrentItem()) ? null : new ItemBuilder(e.getCurrentItem());
         if (clicked == null) return;
@@ -119,8 +121,8 @@ public class ServiceTrainingMenu extends Menu {
         Skill skill = SkillRegistry.getSkill(tc.getSkillToLevel());
         if (skill == null) return -1;
         Profile profile = ProfileCache.getOrCache(playerMenuUtility.getOwner(), skill.getProfileType());
-        if (profile == null) return -1;
-        return Math.max(0, profile.getLevel() >= skill.getMaxLevel() ? 0 : skill.expForLevel(profile.getLevel() + 1) - profile.getEXP());
+        if (profile == null || profile.getLevel() >= skill.getMaxLevel()) return -1;
+        return Math.max(0, skill.expForLevel(profile.getLevel() + 1) - profile.getEXP());
     }
 
     private Map<ItemStack, Integer> getServiceCost(TrainService tc){
@@ -154,15 +156,37 @@ public class ServiceTrainingMenu extends Menu {
             if (skill == null) continue;
             Profile profile = ProfileCache.getOrCache(playerMenuUtility.getOwner(), skill.getProfileType());
             Map<ItemStack, Integer> cost = getServiceCost(service);
-            if (cost == null || cost.isEmpty()) return;
+
+            ItemBuilder buttonBuilder = new ItemBuilder(service.getPrimaryButton().clone());
+            if (cost == null || cost.isEmpty() || profile.getLevel() >= service.getLimitPerLevel().getOrDefault(level, 0)) {
+                buttonBuilder.lore(TranslationManager.translateListPlaceholders(CustomMerchantManager.getTradingConfig().getStringList("service_button_unavailable_training_description")));
+            }
+            if (cost == null || cost.isEmpty()) {
+                ItemStack tempResult = buttonBuilder.translate().get();
+                buttonBuilder.setItem(tempResult);
+                buttonBuilder.setMeta(ItemUtils.getItemMeta(tempResult));
+                buttonBuilder
+                        .placeholderName("%skill%", skill.getDisplayName())
+                        .placeholderName("%maxlevel%", String.valueOf(service.getLimitPerLevel().getOrDefault(level, 0)))
+                        .placeholderName("%levelcurrent%", String.valueOf(profile.getLevel()))
+                        .placeholderName("%levelnext%", profile.getLevel() >= skill.getMaxLevel() ? TranslationManager.getTranslation("max_level") : String.valueOf(profile.getLevel() + 1))
+                        .placeholderLore("%skill%", skill.getDisplayName())
+                        .placeholderLore("%maxlevel%", String.valueOf(service.getLimitPerLevel().getOrDefault(level, 0)))
+                        .placeholderLore("%levelcurrent%", String.valueOf(profile.getLevel()))
+                        .placeholderLore("%levelnext%", profile.getLevel() >= skill.getMaxLevel() ? TranslationManager.getTranslation("max_level") : String.valueOf(profile.getLevel() + 1))
+                        .stringTag(KEY_METHOD, service.getID());
+                ItemStack mainButton = buttonBuilder.get();
+                ItemStack blankServiceButton = new ItemBuilder(mainButton.clone()).type(Material.LIME_DYE).data(9199200).get();
+                for (int secondaryIndex : service.getSecondaryButtonPositions()) {
+                    if (secondaryIndex < 0 || secondaryIndex >= getSlots()) continue;
+                    inventory.setItem(secondaryIndex, blankServiceButton);
+                }
+                inventory.setItem(service.getPrimaryButtonPosition(), buttonBuilder.get());
+                continue;
+            }
             Optional<ItemStack> item = cost.keySet().stream().findAny();
             String costString = TranslationManager.translatePlaceholders(SlotEntry.toString(service.getCost()));
             int quantity = Math.max(0, cost.get(item.get()));
-
-            ItemBuilder buttonBuilder = new ItemBuilder(service.getPrimaryButton().clone());
-            if (profile.getLevel() >= service.getLimitPerLevel().getOrDefault(level, 0)) {
-                buttonBuilder.lore(TranslationManager.translateListPlaceholders(CustomMerchantManager.getTradingConfig().getStringList("service_button_unavailable_training_description")));
-            }
             ItemStack tempResult = buttonBuilder.translate().get();
             buttonBuilder.setItem(tempResult);
             buttonBuilder.setMeta(ItemUtils.getItemMeta(tempResult));

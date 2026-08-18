@@ -2211,6 +2211,64 @@
     "maxOrderCount": 12
   },
   {
+    "id": "librarian_buy_enchantment_sweeping_edge",
+    "priority": 6,
+    "result": "rO0ABXNyABpvcmcuYnVra2l0LnV0aWwuaW8uV3JhcHBlcvJQR+zxEm8FAgABTAADbWFwdAAPTGph\r\ndmEvdXRpbC9NYXA7eHBzcgA1Y29tLmdvb2dsZS5jb21tb24uY29sbGVjdC5JbW11dGFibGVNYXAk\r\nU2VyaWFsaXplZEZvcm0AAAAAAAAAAAIAAkwABGtleXN0ABJMamF2YS9sYW5nL09iamVjdDtMAAZ2\r\nYWx1ZXNxAH4ABHhwdXIAE1tMamF2YS5sYW5nLk9iamVjdDuQzlifEHMpbAIAAHhwAAAAA3QAAj09\r\ndAABdnQABHR5cGV1cQB+AAYAAAADdAAeb3JnLmJ1a2tpdC5pbnZlbnRvcnkuSXRlbVN0YWNrc3IA\r\nEWphdmEubGFuZy5JbnRlZ2VyEuKgpPeBhzgCAAFJAAV2YWx1ZXhyABBqYXZhLmxhbmcuTnVtYmVy\r\nhqyVHQuU4IsCAAB4cAAADCF0AARCT09L\r\n",
+    "scalingCostItem": "rO0ABXNyABpvcmcuYnVra2l0LnV0aWwuaW8uV3JhcHBlcvJQR+zxEm8FAgABTAADbWFwdAAPTGph\r\ndmEvdXRpbC9NYXA7eHBzcgA1Y29tLmdvb2dsZS5jb21tb24uY29sbGVjdC5JbW11dGFibGVNYXAk\r\nU2VyaWFsaXplZEZvcm0AAAAAAAAAAAIAAkwABGtleXN0ABJMamF2YS9sYW5nL09iamVjdDtMAAZ2\r\nYWx1ZXNxAH4ABHhwdXIAE1tMamF2YS5sYW5nLk9iamVjdDuQzlifEHMpbAIAAHhwAAAABHQAAj09\r\ndAABdnQABHR5cGV0AAZhbW91bnR1cQB+AAYAAAAEdAAeb3JnLmJ1a2tpdC5pbnZlbnRvcnkuSXRl\r\nbVN0YWNrc3IAEWphdmEubGFuZy5JbnRlZ2VyEuKgpPeBhzgCAAFJAAV2YWx1ZXhyABBqYXZhLmxh\r\nbmcuTnVtYmVyhqyVHQuU4IsCAAB4cAAADCF0AAdFTUVSQUxEc3EAfgAOAAAAFA==\r\n",
+    "modifiers": [
+      {
+        "MOD_TYPE": "me.athlaeos.valhallammo.crafting.dynamicitemmodifiers.implementations.enchantment_misc.MerchantEnchantingSkillSet",
+        "DATA": {
+          "qualityMap": {
+            "JOURNEYMAN": 90,
+            "MASTER": 150,
+            "EXPERT": 120,
+            "NOVICE": 30,
+            "APPRENTICE": 60
+          },
+          "shouldScaleWithStats": true,
+          "name": "merchant_enchanting_skill",
+          "priority": "SOON"
+        }
+      },
+      {
+        "MOD_TYPE": "me.athlaeos.valhallammo.crafting.dynamicitemmodifiers.implementations.item_misc.ItemReplaceByIndexed",
+        "DATA": {
+          "item": "enchantment_sweeping_edge_scaling",
+          "onlyExecuteModifiers": true,
+          "name": "replace_by_custom",
+          "priority": "NEUTRAL"
+        }
+      }
+    ],
+    "priceModifiers": [],
+    "predicates": [],
+    "predicateSelection": "ANY",
+    "weight": 14.3,
+    "weightQuality": 0.0,
+    "demandWeightModifier": 2.8,
+    "orderTimeBonusPerItem": 1000,
+    "maxUses": 6,
+    "priceRandomNegativeOffset": -4,
+    "priceRandomPositiveOffset": 4,
+    "demandMaxUsesModifier": 0.0,
+    "demandMaxUsesMaxQuantity": 0,
+    "villagerExperience": 21,
+    "rewardsExperience": 21.0,
+    "demandPriceMultiplier": 0.2,
+    "positiveReputationMultiplier": 1.0,
+    "negativeReputationMultiplier": 1.0,
+    "demandPriceMax": 20,
+    "fixedUseCount": false,
+    "exclusive": false,
+    "restockDelay": 0,
+    "giftWeight": 7.5,
+    "refreshes": true,
+    "skillExp": 2100.0,
+    "isTradeable": true,
+    "maxOrderCount": 12
+  },
+  {
     "id": "librarian_sell_book_and_quill",
     "priority": 0,
     "result": "rO0ABXNyABpvcmcuYnVra2l0LnV0aWwuaW8uV3JhcHBlcvJQR+zxEm8FAgABTAADbWFwdAAPTGph\r\ndmEvdXRpbC9NYXA7eHBzcgA1Y29tLmdvb2dsZS5jb21tb24uY29sbGVjdC5JbW11dGFibGVNYXAk\r\nU2VyaWFsaXplZEZvcm0AAAAAAAAAAAIAAkwABGtleXN0ABJMamF2YS9sYW5nL09iamVjdDtMAAZ2\r\nYWx1ZXNxAH4ABHhwdXIAE1tMamF2YS5sYW5nLk9iamVjdDuQzlifEHMpbAIAAHhwAAAAA3QAAj09\r\ndAABdnQABHR5cGV1cQB+AAYAAAADdAAeb3JnLmJ1a2tpdC5pbnZlbnRvcnkuSXRlbVN0YWNrc3IA\r\nEWphdmEubGFuZy5JbnRlZ2VyEuKgpPeBhzgCAAFJAAV2YWx1ZXhyABBqYXZhLmxhbmcuTnVtYmVy\r\nhqyVHQuU4IsCAAB4cAAADCF0AA1XUklUQUJMRV9CT09L\r\n",

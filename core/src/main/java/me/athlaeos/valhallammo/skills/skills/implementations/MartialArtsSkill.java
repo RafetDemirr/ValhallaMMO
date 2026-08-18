@@ -73,10 +73,13 @@ public class MartialArtsSkill extends Skill implements Listener {
 
     private final Map<UUID, Integer> meditationTimeTracker = new HashMap<>();
     private final Map<UUID, GrappleDetails> grappleDetails = new HashMap<>();
+    private final Collection<EntityType> grapplingBlacklist = new HashSet<>();
 
     private final Map<EntityType, Double> entityExpMultipliers = new HashMap<>();
     private double expPerDamage = 0;
     private double spawnerMultiplier = 0;
+    private double pvpMultiplier = 0.1;
+    private boolean isChunkNerfed = true;
 
     private String grappleTooStrongMessage;
     private String disarmingCooldownType;
@@ -114,11 +117,19 @@ public class MartialArtsSkill extends Skill implements Listener {
         playerDisarming = skillConfig.getBoolean("player_disarming");
         playerDisarmedItemOwnership = skillConfig.getBoolean("player_disarming_item_ownership");
         maxHealthLimitation = progressionConfig.getBoolean("experience.max_health_limitation");
+        pvpMultiplier = progressionConfig.getDouble("experience.pvp_multiplier");
+        isChunkNerfed = progressionConfig.getBoolean("experience.is_chunk_nerfed", true);
         ConfigurationSection answerSection = skillConfig.getConfigurationSection("meditation_answer");
         if (answerSection != null){
             for (String answer : answerSection.getKeys(false)){
                 meditationPromptAnswer.put(answer, TranslationManager.translatePlaceholders(skillConfig.getString("meditation_answer." + answer, "")));
             }
+        }
+
+        for (String entity : skillConfig.getStringList("grappling_blacklist")){
+            EntityType type = Catch.catchOrElse(() -> EntityType.valueOf(entity), null);
+            if (type == null) continue;
+            grapplingBlacklist.add(type);
         }
 
         ConfigurationSection entitySection = progressionConfig.getConfigurationSection("experience.exp_enemies_nerfed");
@@ -165,7 +176,8 @@ public class MartialArtsSkill extends Skill implements Listener {
                 || !(e.getRightClicked() instanceof LivingEntity l) || !EntityUtils.isUnarmed(e.getPlayer())
                 || !Timer.isCooldownPassed(e.getPlayer().getUniqueId(), "grappling_attempt_cooldown")
                 || !Timer.isCooldownPassed(e.getPlayer().getUniqueId(), "grappling_attack_cooldown")
-                || Timer.sendIfNotPassed(e.getPlayer(),"cooldown_disarming", disarmingCooldownType)) return;
+                || Timer.sendIfNotPassed(e.getPlayer(),"cooldown_disarming", disarmingCooldownType) ||
+                grapplingBlacklist.contains(e.getRightClicked().getType())) return;
 
         MartialArtsProfile grapplerProfile = ProfileCache.getOrCache(e.getPlayer(), MartialArtsProfile.class);
         if (!grapplerProfile.isGrapplingUnlocked()) return;
@@ -356,15 +368,17 @@ public class MartialArtsSkill extends Skill implements Listener {
                 if (!p.isOnline()) return;
                 double chunkNerf = EntitySpawnListener.isTrialSpawned(l) ? 1 : ChunkEXPNerf.getChunkEXPNerf(l.getLocation().getChunk(), p, "weapons");
                 double entityExpMultiplier = entityExpMultipliers.getOrDefault(l.getType(), 1D);
+                double pvpMult = e.getEntity() instanceof Player ? pvpMultiplier : 1;
                 addEXP(p,
                         maxHealthLimitation ? (Math.min(EntityUtils.getMaxHP(l), e.getDamage())) : e.getDamage() *
                                 expPerDamage *
                                 entityExpMultiplier *
                                 chunkNerf *
+                                pvpMult *
                                 (EntitySpawnListener.isSpawnerSpawned(l) ? spawnerMultiplier : 1),
                         false,
                         PlayerSkillExperienceGainEvent.ExperienceGainReason.SKILL_ACTION);
-                if (!EntitySpawnListener.isTrialSpawned(l)) ChunkEXPNerf.increment(l.getLocation().getChunk(), p, "weapons");
+                if (isChunkNerfed && !EntitySpawnListener.isTrialSpawned(l)) ChunkEXPNerf.increment(l.getLocation().getChunk(), p, "weapons");
             }, 2L);
         }
     }
@@ -407,7 +421,7 @@ public class MartialArtsSkill extends Skill implements Listener {
             @Override
             public me.athlaeos.valhallammo.dom.Action<Player> getOnFinish() {
                 Question question = getQuestions().getFirst();
-                if (question == null) return super.getOnFinish();
+                if (question == null || Utils.withinManhattanRange(player.getLocation(), rightClicked.getLocation(), 2)) return super.getOnFinish();
                 String answer = question.getAnswer();
                 if (answer == null) return super.getOnFinish();
                 String response = meditationPromptAnswer.keySet().stream()
