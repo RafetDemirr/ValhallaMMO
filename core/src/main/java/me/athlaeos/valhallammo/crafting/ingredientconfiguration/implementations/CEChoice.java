@@ -49,20 +49,7 @@ public class CEChoice extends RecipeOption {
 
     @Override
     public RecipeChoice getChoice(ItemStack i) {
-        return new RecipeChoice.ExactChoice(i) {
-            @Override
-            public boolean test(@NotNull ItemStack itemStack) {
-                if (!ValhallaMMO.isHookFunctional(CEHook.class)) return false;
-
-                // Get the reference CraftEngine ID
-                String referenceCraftEngineId = CEHook.getCraftEngineItemID(i);
-                if (referenceCraftEngineId == null) return false;
-
-                // Check if the tested item has the same CraftEngine ID
-                String testedCraftEngineId = CEHook.getCraftEngineItemID(itemStack);
-                return referenceCraftEngineId.equals(testedCraftEngineId);
-            }
-        };
+        return new RecipeChoice.ExactChoice(i);
     }
 
     @Override

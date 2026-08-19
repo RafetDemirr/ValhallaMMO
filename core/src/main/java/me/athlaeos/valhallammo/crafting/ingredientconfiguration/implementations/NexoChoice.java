@@ -49,20 +49,8 @@ public class NexoChoice extends RecipeOption {
 
     @Override
     public RecipeChoice getChoice(ItemStack i) {
-        return new RecipeChoice.ExactChoice(i) {
-            @Override
-            public boolean test(@NotNull ItemStack itemStack) {
-                if (!ValhallaMMO.isHookFunctional(NexoHook.class)) return false;
-
-                // Get the reference Nexo ID
-                String referenceNexoId = NexoHook.getNexoItemID(i);
-                if (referenceNexoId == null) return false;
-
-                // Check if the tested item has the same Nexo ID
-                String testedNexoId = NexoHook.getNexoItemID(itemStack);
-                return referenceNexoId.equals(testedNexoId);
-            }
-        };
+        if (!ValhallaMMO.isHookFunctional(NexoHook.class)) return new RecipeChoice.MaterialChoice(Material.BARRIER);
+        return new RecipeChoice.ExactChoice(i);
     }
 
     @Override
