@@ -19,14 +19,13 @@ import me.athlaeos.valhallammo.utility.ItemUtils;
 import org.bukkit.Keyed;
 import org.bukkit.block.Block;
 import org.bukkit.block.Crafter;
+import org.bukkit.craftbukkit.v1_21_R1.inventory.CraftInventory;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.CrafterCraftEvent;
-import org.bukkit.inventory.CrafterInventory;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.ShapedRecipe;
-import org.bukkit.inventory.ShapelessRecipe;
+import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.inventory.*;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -48,7 +47,8 @@ public class CrafterCraftListener implements Listener {
             if (recipe.getModifiers().stream().anyMatch(DynamicItemModifier::requiresPlayer)) e.setCancelled(true);
             else {
                 Block crafter = e.getBlock();
-                if (!(crafter.getState() instanceof Crafter c) || !(c.getInventory() instanceof CrafterInventory ci)) return;
+                if (!(crafter.getState() instanceof Crafter c) || c.getInventory().getType() != InventoryType.CRAFTER) return;
+                Inventory ci = c.getInventory();
                 ItemStack result = verifyIngredients(recipe, ci.getContents());
                 if (ItemUtils.isEmpty(result)){
                     Pair<DynamicGridRecipe, ItemStack> corrected = correctRecipe(e.getBlock(), recipe, ci.getContents());

@@ -49,20 +49,7 @@ public class IAChoice extends RecipeOption {
 
     @Override
     public RecipeChoice getChoice(ItemStack i) {
-        return new RecipeChoice.ExactChoice(i) {
-            @Override
-            public boolean test(@NotNull ItemStack itemStack) {
-                if (!ValhallaMMO.isHookFunctional(IAHook.class)) return false;
-
-                // Get the reference ItemsAdder ID
-                String referenceItemsAdderId = IAHook.getItemsAdderItemID(i);
-                if (referenceItemsAdderId == null) return false;
-
-                // Check if the tested item has the same ItemsAdder ID
-                String testedItemsAdderId = IAHook.getItemsAdderItemID(itemStack);
-                return referenceItemsAdderId.equals(testedItemsAdderId);
-            }
-        };
+        return new RecipeChoice.ExactChoice(i);
     }
 
     @Override
