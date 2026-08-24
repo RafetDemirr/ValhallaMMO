@@ -5,13 +5,11 @@ import me.athlaeos.valhallammo.configuration.ConfigManager;
 import me.athlaeos.valhallammo.crafting.dynamicitemmodifiers.ModifierRegistry;
 import me.athlaeos.valhallammo.crafting.dynamicitemmodifiers.implementations.item_misc.SkillRequirementAdd;
 import me.athlaeos.valhallammo.crafting.dynamicitemmodifiers.implementations.rewards.SkillExperience;
-import me.athlaeos.valhallammo.dom.MinecraftVersion;
 import me.athlaeos.valhallammo.playerstats.format.StatFormat;
 import me.athlaeos.valhallammo.playerstats.profiles.ProfileRegistry;
 import me.athlaeos.valhallammo.playerstats.profiles.implementations.ConfigurableProfile;
 import me.athlaeos.valhallammo.playerstats.profiles.properties.BooleanProperties;
 import me.athlaeos.valhallammo.playerstats.profiles.properties.PropertyBuilder;
-import me.athlaeos.valhallammo.playerstats.profiles.properties.StatProperties;
 import me.athlaeos.valhallammo.skills.perk_rewards.PerkRewardRegistry;
 import me.athlaeos.valhallammo.skills.perk_rewards.implementations.*;
 import me.athlaeos.valhallammo.skills.skills.implementations.*;
@@ -20,7 +18,10 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
 import java.io.File;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 
 public class SkillRegistry {
     private static Map<Class<?>, Skill> allSkills = Collections.unmodifiableMap(new HashMap<>());
@@ -161,16 +162,29 @@ public class SkillRegistry {
     public static void updateSkillProgression(Player p, boolean runPersistentStartingPerks){
         ValhallaMMO.getInstance().getServer().getScheduler().runTaskAsynchronously(ValhallaMMO.getInstance(), () -> {
             allSkillsByType.values().forEach(s -> {
-                if (s instanceof ConfigurableSkill c){
-                    ProfileRegistry.setSkillProfile(p, ProfileRegistry.getBlankConfigurableProfile(p, c.type), s.getProfileType());
-                } else {
+                if (!(s instanceof ConfigurableSkill)){
                     ProfileRegistry.setSkillProfile(p, ProfileRegistry.getBlankProfile(p, s.getProfileType()), s.getProfileType());
                 }
             });
 
             getSkill(PowerSkill.class).updateSkillStats(p, runPersistentStartingPerks);
             allSkills.values().forEach(s -> {
-                if (s instanceof PowerSkill) return;
+                if (s instanceof PowerSkill || s instanceof ConfigurableSkill) return;
+                s.updateSkillStats(p, runPersistentStartingPerks);
+            });
+        });
+    }
+
+    public static void updateConfigurableSkillProgression(Player p, boolean runPersistentStartingPerks){
+        ValhallaMMO.getInstance().getServer().getScheduler().runTaskAsynchronously(ValhallaMMO.getInstance(), () -> {
+            allSkillsByType.values().forEach(s -> {
+                if (s instanceof ConfigurableSkill c){
+                    ProfileRegistry.setSkillProfile(p, ProfileRegistry.getBlankConfigurableProfile(p, c.type), s.getProfileType());
+                }
+            });
+
+            allSkills.values().forEach(s -> {
+                if (!(s instanceof ConfigurableSkill)) return;
                 s.updateSkillStats(p, runPersistentStartingPerks);
             });
         });
