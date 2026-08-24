@@ -260,7 +260,7 @@ public abstract class ProfilePersistence {
             }
             profiles.put(type, profile);
         }
-        updateProfileStats(uuid, runPersistentStartingPerks);
+        updateConfigurableProfileStats(uuid, runPersistentStartingPerks);
         return profiles;
     }
 
@@ -271,9 +271,23 @@ public abstract class ProfilePersistence {
             Player player = Bukkit.getPlayer(uuid);
             if (player != null) {
                 skillProfiles.remove(player.getUniqueId());
-                skillConfigurableProfiles.remove(player.getUniqueId());
                 Utils.sendMessage(player, TranslationManager.getTranslation("status_profiles_loaded"));
                 SkillRegistry.updateSkillProgression(player, withPersistentPerks);
+            } else {
+                uncacheProfile(uuid);
+            }
+        });
+    }
+
+    public void updateConfigurableProfileStats(UUID uuid, boolean withPersistentPerks){
+        AccumulativeStatManager.resetAllCaches(uuid);
+        JoinLeaveListener.getLoadedProfiles().add(uuid);
+        Bukkit.getScheduler().runTask(ValhallaMMO.getInstance(), () -> {
+            Player player = Bukkit.getPlayer(uuid);
+            if (player != null) {
+                skillConfigurableProfiles.remove(player.getUniqueId());
+                Utils.sendMessage(player, TranslationManager.getTranslation("status_profiles_loaded"));
+                SkillRegistry.updateConfigurableSkillProgression(player, withPersistentPerks);
             } else {
                 uncacheProfile(uuid);
             }

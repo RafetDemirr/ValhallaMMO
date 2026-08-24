@@ -41,8 +41,8 @@ public class SkillRegistry {
          registerIfConfigEnabled("armor_heavy", new HeavyArmorSkill("HEAVY_ARMOR"));
          registerIfConfigEnabled("weapons_light", new LightWeaponsSkill("LIGHT_WEAPONS"));
          registerIfConfigEnabled("weapons_heavy", new HeavyWeaponsSkill("HEAVY_WEAPONS"));
-        registerIfConfigEnabled("martial_arts", new MartialArtsSkill("MARTIAL_ARTS"));
-        registerIfConfigEnabled("trading", new TradingSkill("TRADING"));
+         registerIfConfigEnabled("martial_arts", new MartialArtsSkill("MARTIAL_ARTS"));
+         registerIfConfigEnabled("trading", new TradingSkill("TRADING"));
 
         loadConfigurableSkills();
     }
@@ -163,16 +163,29 @@ public class SkillRegistry {
     public static void updateSkillProgression(Player p, boolean runPersistentStartingPerks){
         ValhallaMMO.getInstance().getServer().getScheduler().runTaskAsynchronously(ValhallaMMO.getInstance(), () -> {
             allSkillsByType.values().forEach(s -> {
-                if (s instanceof ConfigurableSkill c){
-                    ProfileRegistry.setSkillProfile(p, ProfileRegistry.getBlankConfigurableProfile(p, c.type), s.getProfileType());
-                } else {
+                if (!(s instanceof ConfigurableSkill)){
                     ProfileRegistry.setSkillProfile(p, ProfileRegistry.getBlankProfile(p, s.getProfileType()), s.getProfileType());
                 }
             });
 
             getSkill(PowerSkill.class).updateSkillStats(p, runPersistentStartingPerks);
             allSkills.values().forEach(s -> {
-                if (s instanceof PowerSkill) return;
+                if (s instanceof PowerSkill || s instanceof ConfigurableSkill) return;
+                s.updateSkillStats(p, runPersistentStartingPerks);
+            });
+        });
+    }
+
+    public static void updateConfigurableSkillProgression(Player p, boolean runPersistentStartingPerks){
+        ValhallaMMO.getInstance().getServer().getScheduler().runTaskAsynchronously(ValhallaMMO.getInstance(), () -> {
+            allSkillsByType.values().forEach(s -> {
+                if (s instanceof ConfigurableSkill c){
+                    ProfileRegistry.setSkillProfile(p, ProfileRegistry.getBlankConfigurableProfile(p, c.type), s.getProfileType());
+                }
+            });
+
+            allSkills.values().forEach(s -> {
+                if (!(s instanceof ConfigurableSkill)) return;
                 s.updateSkillStats(p, runPersistentStartingPerks);
             });
         });
