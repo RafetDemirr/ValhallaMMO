@@ -285,12 +285,13 @@ public class EntityAttackListener implements Listener {
                             Vector moveSpeedDirection = MovementListener.getLastMovementVectors().get(e.getDamager().getUniqueId());
                             if (moveSpeedDirection != null){
                                 double speed = moveSpeedDirection.length();
-                                double multiplier = Math.max(0, l.getEyeLocation().getDirection().dot(moveSpeedDirection));
-                                if (!Double.isNaN(speed) && !Double.isNaN(multiplier)) damageMultiplier = getDamageMultiplier(damageMultiplier, 1 + ((speed / velocityDamageConstant) * multiplier));
+                                double multiplier = Math.max(0, l.getEyeLocation().getDirection().dot(moveSpeedDirection.clone().normalize()));
+                                if (!Double.isNaN(speed) && !Double.isNaN(multiplier)) damageMultiplier = getDamageMultiplier(damageMultiplier, 1 + (velocityBonus * (speed / velocityDamageConstant) * multiplier));
                             }
                         }
                     }
                 }
+                //Changed how velocity gets calculated and added the velocity bonus in the actual calculation
                 EntityProperties victimProperties = EntityCache.getAndCacheProperties(v);
                 damageMultiplier = getDamageMultiplier(damageMultiplier, 1 + (victimProperties.getLightArmorCount() * AccumulativeStatManager.getCachedRelationalStats("LIGHT_ARMOR_DAMAGE_BONUS", v, e.getDamager(), 10000, true)));
                 damageMultiplier = getDamageMultiplier(damageMultiplier, 1 + (victimProperties.getHeavyArmorCount() * AccumulativeStatManager.getCachedRelationalStats("HEAVY_ARMOR_DAMAGE_BONUS", v, e.getDamager(), 10000, true)));
