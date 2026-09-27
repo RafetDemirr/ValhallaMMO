@@ -19,21 +19,6 @@
         </dependency>
         <dependency>
             <groupId>me.athlaeos</groupId>
-            <artifactId>valhallammo-paper1_21_R5</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>me.athlaeos</groupId>
-            <artifactId>valhallammo-paper1_21_R4</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>me.athlaeos</groupId>
-            <artifactId>valhallammo-paper1_21_R3</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>me.athlaeos</groupId>
             <artifactId>valhallammo-v26_R1</artifactId>
             <version>${project.version}</version>
         </dependency>
