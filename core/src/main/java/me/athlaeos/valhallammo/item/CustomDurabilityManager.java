@@ -14,6 +14,8 @@ import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
+import java.lang.reflect.Method;
+
 public class CustomDurabilityManager {
     private static final NamespacedKey DURABILITY = ValhallaMMO.key("durability");
     private static final NamespacedKey MAX_DURABILITY = ValhallaMMO.key("max_durability");
@@ -74,7 +76,7 @@ public class CustomDurabilityManager {
             if (hasCustom){
                 setDurability(item, newDurability, maxDurability);
             } else {
-                d.setDamage(maxDurability - (maxDurability - newDurability));
+                d.setDamage(maxDurability - newDurability);
             }
         }
     }
@@ -97,6 +99,52 @@ public class CustomDurabilityManager {
         }
     }
 
+    private static final Method HAS_MAX_DAMAGE = findDamageableMethod("hasMaxDamage");
+    private static final Method GET_MAX_DAMAGE = findDamageableMethod("getMaxDamage");
+
+    /**
+     * Custom durability is stored separately from the item's vanilla damage value, which only mirrors it. Anything that
+     * repairs an item through vanilla means (repair commands, virtual anvils, grindstones, mending handled by another
+     * plugin, etc.) only lowers the vanilla damage, so the next time the item got damaged it would snap back to its
+     * old custom durability.<br>
+     * If the item's vanilla damage is lower than its custom durability says it should be, it was repaired externally and
+     * its custom durability is raised to match. This never lowers an item's custom durability.
+     * @param item the item to sync
+     */
+    public static void syncExternalRepairs(ItemBuilder item){
+        int vanillaMax = item.getItem().getType().getMaxDurability();
+        if (vanillaMax <= 0 || !(item.getMeta() instanceof Damageable d)) return;
+        if (!item.getMeta().getPersistentDataContainer().has(DURABILITY, PersistentDataType.INTEGER)) return;
+        if (hasDifferentMaxDamage(d, vanillaMax)) return; // vanilla damage isn't on the scale updateLore() writes it on
+        int maxCustom = getDurability(item, true);
+        int custom = getDurability(item, false);
+        if (maxCustom <= 0) return;
+        // same formula as updateLore(), which is what the vanilla damage would be if nothing else had touched it
+        double fraction = Math.max(0, Math.min(1, (double) custom / (double) maxCustom));
+        int expectedDamage = vanillaMax - (int) Math.ceil(fraction * vanillaMax);
+        if (d.getDamage() >= expectedDamage) return;
+        int repaired = d.getDamage() <= 0 ? maxCustom : (int) Math.round(((vanillaMax - d.getDamage()) / (double) vanillaMax) * maxCustom);
+        if (repaired <= custom) return;
+        setDurability(item, repaired, maxCustom);
+    }
+
+    private static Method findDamageableMethod(String name){
+        try {
+            return Damageable.class.getMethod(name);
+        } catch (NoSuchMethodException ignored){
+            return null;
+        }
+    }
+
+    private static boolean hasDifferentMaxDamage(Damageable d, int vanillaMax){
+        if (HAS_MAX_DAMAGE == null || GET_MAX_DAMAGE == null) return false; // versions before item components
+        try {
+            return (boolean) HAS_MAX_DAMAGE.invoke(d) && (int) GET_MAX_DAMAGE.invoke(d) != vanillaMax;
+        } catch (ReflectiveOperationException | RuntimeException ignored){
+            return true; // can't tell, so don't touch the item
+        }
+    }
+
     public static double getDurabilityFraction(ItemBuilder item){
         Material baseType = item.getItem().getType();
         boolean hasCustom = item.getMeta().getPersistentDataContainer().has(DURABILITY, PersistentDataType.INTEGER);
@@ -105,7 +153,7 @@ public class CustomDurabilityManager {
             if (hasCustom){
                 return (double) getDurability(item, false) / (double) maxDurability;
             } else {
-                return (double) (maxDurability - (maxDurability - d.getDamage())) / maxDurability;
+                return (double) (maxDurability - d.getDamage()) / maxDurability;
             }
         }
         return 0;

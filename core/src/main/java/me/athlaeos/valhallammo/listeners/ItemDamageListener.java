@@ -35,6 +35,7 @@ public class ItemDamageListener implements Listener {
         e.setDamage(Utils.randomAverage(e.getDamage() * Math.max(0, multiplier)));
 
         if (CustomDurabilityManager.hasCustomDurability(builder.getMeta())){
+            CustomDurabilityManager.syncExternalRepairs(builder); // otherwise repairs made outside the plugin are undone here
             CustomDurabilityManager.damage(builder, e.getDamage());
             if (CustomDurabilityManager.getDurability(builder, false) > 0) {
                 e.setCancelled(true);
@@ -57,7 +58,15 @@ public class ItemDamageListener implements Listener {
             return;
         }
         if (CustomDurabilityManager.hasCustomDurability(item.getMeta())){
-            CustomDurabilityManager.damage(item, -e.getRepairAmount());
+            CustomDurabilityManager.syncExternalRepairs(item);
+            // the repair amount is in vanilla durability points (and capped at the item's vanilla damage, which is only a
+            // scaled down representation of its custom durability), so it's scaled up to custom durability points to make
+            // mending restore the same fraction of an item's durability as it would on a vanilla item
+            int vanillaMax = e.getItem().getType().getMaxDurability();
+            int customMax = CustomDurabilityManager.getDurability(item, true);
+            int repair = e.getRepairAmount();
+            if (vanillaMax > 0 && customMax > 0 && repair > 0) repair = Math.max(1, (int) Math.round(repair * (customMax / (double) vanillaMax)));
+            CustomDurabilityManager.damage(item, -repair);
             e.setCancelled(true);
             ItemMeta meta = ItemUtils.getItemMeta(item.get());
             if (meta == null) return;
