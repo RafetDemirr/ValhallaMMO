@@ -303,6 +303,9 @@ public class EntityAttackListener implements Listener {
                 damageMultiplier = getDamageMultiplier(damageMultiplier, 1 + (victimProperties.getLightArmorCount() * AccumulativeStatManager.getCachedRelationalStats("LIGHT_ARMOR_DAMAGE_BONUS", v, e.getDamager(), 10000, true)));
                 damageMultiplier = getDamageMultiplier(damageMultiplier, 1 + (victimProperties.getHeavyArmorCount() * AccumulativeStatManager.getCachedRelationalStats("HEAVY_ARMOR_DAMAGE_BONUS", v, e.getDamager(), 10000, true)));
 
+                // backstab damage: bonus damage for hitting a victim that isn't facing the attacker
+                if (!facing) damageMultiplier = getDamageMultiplier(damageMultiplier, 1 + AccumulativeStatManager.getCachedRelationalStats("BACKSTAB_DAMAGE_BONUS", v, e.getDamager(), 10000, true));
+
                 // absorption damage bonus
                 // deliberately not folded into damageMultiplier: this bonus may only consume the victim's absorption
                 // hearts and must never spill over into their health, so it is handed to EntityDamagedListener which
