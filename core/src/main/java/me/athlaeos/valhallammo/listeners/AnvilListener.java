@@ -35,6 +35,12 @@ public class AnvilListener implements Listener {
                 return;
             }
         }
+        if (CustomDurabilityManager.hasNativeDurability(resultBuilder.getMeta())){
+            // vanilla already repaired the item on its own durability, only the durability displayed on it is outdated
+            CustomDurabilityManager.updateLore(resultBuilder);
+            e.setResult(resultBuilder.get());
+            return;
+        }
         if (!(resultBuilder.getMeta() instanceof Damageable d) || result.getType().getMaxDurability() <= 0) return;
         double fraction = (((int) result.getType().getMaxDurability() - d.getDamage()) / (double) result.getType().getMaxDurability());
 

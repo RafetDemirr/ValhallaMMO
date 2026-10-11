@@ -7,6 +7,7 @@ import me.athlaeos.valhallammo.crafting.dynamicitemmodifiers.ModifierContext;
 import me.athlaeos.valhallammo.crafting.dynamicitemmodifiers.ResultChangingModifier;
 import me.athlaeos.valhallammo.dom.Pair;
 import me.athlaeos.valhallammo.dom.Scaling;
+import me.athlaeos.valhallammo.item.CustomDurabilityManager;
 import me.athlaeos.valhallammo.item.ItemBuilder;
 import me.athlaeos.valhallammo.item.MaterialClass;
 import me.athlaeos.valhallammo.localization.TranslationManager;
@@ -55,7 +56,8 @@ public class AmountScale extends DynamicItemModifier implements ResultChangingMo
 
         if (damagePenalty){
             if (context.getItem().getMeta() instanceof Damageable && context.getItem().getItem().getType().getMaxDurability() > 0){
-                double fractionDurability = (context.getItem().getItem().getType().getMaxDurability() - ((Damageable) context.getItem().getMeta()).getDamage()) / (double) context.getItem().getItem().getType().getMaxDurability();
+                // not calculated from the item's vanilla damage and type durability, as items may have their own max durability
+                double fractionDurability = Math.max(0, Math.min(1, CustomDurabilityManager.getDurabilityFraction(context.getItem())));
                 originalAmount = (int) Math.floor(originalAmount * fractionDurability);
             }
         }

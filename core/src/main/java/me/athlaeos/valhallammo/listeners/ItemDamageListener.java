@@ -42,7 +42,8 @@ public class ItemDamageListener implements Listener {
                 ItemMeta meta = ItemUtils.getItemMeta(builder.get());
                 if (meta != null) ItemUtils.setMetaNoClone(itemStack, meta);
             } else if (builder.getMeta() instanceof Damageable d && itemStack.getType().getMaxDurability() > 0) {
-                d.setDamage(itemStack.getType().getMaxDurability());
+                // with native durability the item's damage has already been set to its max damage
+                if (!CustomDurabilityManager.usesNativeDurability()) d.setDamage(itemStack.getType().getMaxDurability());
                 ItemMeta meta = ItemUtils.getItemMeta(builder.get());
                 if (meta != null) ItemUtils.setMetaNoClone(itemStack, meta);
             }
@@ -58,6 +59,14 @@ public class ItemDamageListener implements Listener {
             return;
         }
         if (CustomDurabilityManager.hasCustomDurability(item.getMeta())){
+            if (CustomDurabilityManager.usesNativeDurability()){
+                // the repair amount is already in the item's own durability, so vanilla is left to repair the item (and
+                // spend the experience for it). only the durability displayed on the item needs to be kept up to date
+                CustomDurabilityManager.updateLore(item, CustomDurabilityManager.getDurability(item, false) + e.getRepairAmount());
+                ItemMeta meta = ItemUtils.getItemMeta(item.get());
+                if (meta != null) ItemUtils.setMetaNoClone(e.getItem(), meta);
+                return;
+            }
             CustomDurabilityManager.syncExternalRepairs(item);
             // the repair amount is in vanilla durability points (and capped at the item's vanilla damage, which is only a
             // scaled down representation of its custom durability), so it's scaled up to custom durability points to make

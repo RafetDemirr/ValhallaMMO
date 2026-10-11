@@ -19,6 +19,34 @@ import java.lang.reflect.Method;
 public class CustomDurabilityManager {
     private static final NamespacedKey DURABILITY = ValhallaMMO.key("durability");
     private static final NamespacedKey MAX_DURABILITY = ValhallaMMO.key("max_durability");
+    // marks an item as having its custom durability stored in its vanilla max_damage and damage components
+    private static final NamespacedKey NATIVE_DURABILITY = ValhallaMMO.key("native_durability");
+
+    private static final Method HAS_MAX_DAMAGE = findDamageableMethod("hasMaxDamage");
+    private static final Method GET_MAX_DAMAGE = findDamageableMethod("getMaxDamage");
+    private static final Method SET_MAX_DAMAGE = findDamageableMethod("setMaxDamage", Integer.class);
+    // On versions with item components (1.20.5+) items can have their own max durability, so custom durability is
+    // stored in the item's actual max_damage and damage components instead of in tags that the vanilla damage value
+    // merely mirrors. Vanilla mechanics and other plugins then repair and read the item's real durability.
+    // Items still using the tags are converted the first time their durability is accessed.
+    private static final boolean NATIVE = HAS_MAX_DAMAGE != null && GET_MAX_DAMAGE != null && SET_MAX_DAMAGE != null;
+
+    /**
+     * @return true if custom durability is stored in the item's vanilla max_damage and damage components, false if
+     * it's stored in tags which the vanilla damage value mirrors
+     */
+    public static boolean usesNativeDurability(){
+        return NATIVE;
+    }
+
+    /**
+     * @param meta the item meta to check
+     * @return true if this item's custom durability is already stored in its vanilla components, meaning its vanilla
+     * damage value is its actual durability and not a scaled down representation of it
+     */
+    public static boolean hasNativeDurability(ItemMeta meta){
+        return NATIVE && meta != null && meta.getPersistentDataContainer().has(NATIVE_DURABILITY, PersistentDataType.INTEGER);
+    }
 
     /**
      * Damages an item's custom durability by the given amount. This method does not let you know if the item should break
@@ -29,6 +57,15 @@ public class CustomDurabilityManager {
      */
     public static void damage(ItemBuilder item, int damage){
         Material baseType = item.getItem().getType();
+        if (NATIVE){
+            if (baseType.getMaxDurability() > 0 && isCustom(item) && item.getMeta() instanceof Damageable d){
+                int maxDurability = nativeMax(item, d);
+                int durability = (int) Math.max(0, Math.min(maxDurability, (long) nativeDurability(maxDurability, d) - damage));
+                d.setDamage(maxDurability - durability);
+                updateLore(item);
+            }
+            return;
+        }
         if (baseType.getMaxDurability() > 0 && item.getMeta().getPersistentDataContainer().has(DURABILITY, PersistentDataType.INTEGER)){
             int durability = item.getMeta().getPersistentDataContainer().getOrDefault(DURABILITY, PersistentDataType.INTEGER, 0);
             int maxDurability = item.getMeta().getPersistentDataContainer().getOrDefault(MAX_DURABILITY, PersistentDataType.INTEGER, 0);
@@ -49,7 +86,10 @@ public class CustomDurabilityManager {
     public static void setDurability(ItemBuilder item, int durability, int maxDurability){
         Material baseType = item.getItem().getType();
         if (baseType.getMaxDurability() > 0){
-            if (durability < 0 || maxDurability < 0){
+            if (NATIVE && item.getMeta() instanceof Damageable d){
+                if (durability < 0 || maxDurability < 0) clearNative(item, d);
+                else writeNative(item, d, Math.min(maxDurability, durability), Math.max(maxDurability, durability));
+            } else if (durability < 0 || maxDurability < 0){
                 item.getMeta().getPersistentDataContainer().remove(DURABILITY);
                 item.getMeta().getPersistentDataContainer().remove(MAX_DURABILITY);
             } else {
@@ -69,7 +109,7 @@ public class CustomDurabilityManager {
     public static void setDurability(ItemBuilder item, double fraction){
         Material baseType = item.getItem().getType();
         fraction = Math.max(0, Math.min(1, fraction));
-        boolean hasCustom = item.getMeta().getPersistentDataContainer().has(DURABILITY, PersistentDataType.INTEGER);
+        boolean hasCustom = isCustom(item);
         int maxDurability = hasCustom ? getDurability(item, true) : baseType.getMaxDurability();
         int newDurability = Math.max(1, (int) Math.round(fraction * maxDurability));
         if (baseType.getMaxDurability() > 0 && item.getMeta() instanceof Damageable d){
@@ -88,7 +128,7 @@ public class CustomDurabilityManager {
      */
     public static void setDurability(ItemBuilder item, int amount){
         Material baseType = item.getItem().getType();
-        boolean hasCustom = item.getMeta().getPersistentDataContainer().has(DURABILITY, PersistentDataType.INTEGER);
+        boolean hasCustom = isCustom(item);
         int maxDurability = hasCustom ? getDurability(item, true) : baseType.getMaxDurability();
         if (baseType.getMaxDurability() > 0 && item.getMeta() instanceof Damageable d){
             if (hasCustom){
@@ -99,23 +139,21 @@ public class CustomDurabilityManager {
         }
     }
 
-    private static final Method HAS_MAX_DAMAGE = findDamageableMethod("hasMaxDamage");
-    private static final Method GET_MAX_DAMAGE = findDamageableMethod("getMaxDamage");
-
     /**
      * Custom durability is stored separately from the item's vanilla damage value, which only mirrors it. Anything that
      * repairs an item through vanilla means (repair commands, virtual anvils, grindstones, mending handled by another
      * plugin, etc.) only lowers the vanilla damage, so the next time the item got damaged it would snap back to its
      * old custom durability.<br>
      * If the item's vanilla damage is lower than its custom durability says it should be, it was repaired externally and
-     * its custom durability is raised to match. This never lowers an item's custom durability.
+     * its custom durability is raised to match. This never lowers an item's custom durability.<br>
+     * Does nothing if custom durability is stored natively, as the vanilla damage then is the item's custom durability.
      * @param item the item to sync
      */
     public static void syncExternalRepairs(ItemBuilder item){
+        if (NATIVE) return;
         int vanillaMax = item.getItem().getType().getMaxDurability();
         if (vanillaMax <= 0 || !(item.getMeta() instanceof Damageable d)) return;
         if (!item.getMeta().getPersistentDataContainer().has(DURABILITY, PersistentDataType.INTEGER)) return;
-        if (hasDifferentMaxDamage(d, vanillaMax)) return; // vanilla damage isn't on the scale updateLore() writes it on
         int maxCustom = getDurability(item, true);
         int custom = getDurability(item, false);
         if (maxCustom <= 0) return;
@@ -128,26 +166,98 @@ public class CustomDurabilityManager {
         setDurability(item, repaired, maxCustom);
     }
 
-    private static Method findDamageableMethod(String name){
+    private static Method findDamageableMethod(String name, Class<?>... parameters){
         try {
-            return Damageable.class.getMethod(name);
+            return Damageable.class.getMethod(name, parameters);
         } catch (NoSuchMethodException ignored){
             return null;
         }
     }
 
-    private static boolean hasDifferentMaxDamage(Damageable d, int vanillaMax){
-        if (HAS_MAX_DAMAGE == null || GET_MAX_DAMAGE == null) return false; // versions before item components
+    /**
+     * @return true if the item has custom durability that can be read and changed. If custom durability is stored
+     * natively and the item is still using the old tags, it's converted first.
+     */
+    private static boolean isCustom(ItemBuilder item){
+        if (!NATIVE) return item.getMeta().getPersistentDataContainer().has(DURABILITY, PersistentDataType.INTEGER);
+        migrate(item);
+        return item.getMeta().getPersistentDataContainer().has(NATIVE_DURABILITY, PersistentDataType.INTEGER);
+    }
+
+    /**
+     * Converts an item with its custom durability stored in tags to having it stored in its vanilla components
+     */
+    private static void migrate(ItemBuilder item){
+        ItemMeta meta = item.getMeta();
+        if (meta.getPersistentDataContainer().has(NATIVE_DURABILITY, PersistentDataType.INTEGER)) return;
+        boolean hasDurability = meta.getPersistentDataContainer().has(DURABILITY, PersistentDataType.INTEGER);
+        boolean hasMaxDurability = meta.getPersistentDataContainer().has(MAX_DURABILITY, PersistentDataType.INTEGER);
+        if (!hasDurability && !hasMaxDurability) return;
+        int vanillaMax = item.getItem().getType().getMaxDurability();
+        if (vanillaMax <= 0 || !(meta instanceof Damageable d)) return;
+        int maxDurability = Math.max(0, meta.getPersistentDataContainer().getOrDefault(MAX_DURABILITY, PersistentDataType.INTEGER, 0));
+        int durability;
+        if (hasDurability) durability = Math.max(0, meta.getPersistentDataContainer().getOrDefault(DURABILITY, PersistentDataType.INTEGER, 0));
+        else {
+            // only a max durability was stored, in which case the item's vanilla damage determined how damaged it was
+            double fraction = Math.max(0, Math.min(1, (vanillaMax - d.getDamage()) / (double) vanillaMax));
+            durability = (int) Math.round(fraction * maxDurability);
+        }
+        writeNative(item, d, Math.min(maxDurability, durability), maxDurability);
+    }
+
+    private static void writeNative(ItemBuilder item, Damageable d, int durability, int maxDurability){
+        maxDurability = Math.max(1, maxDurability); // max_damage has to be positive
+        durability = Math.max(0, Math.min(maxDurability, durability));
+        d.setDamage(0); // damage can't exceed max damage, so it's cleared before the max is changed
+        if (!setMaxDamage(d, maxDurability)) return;
+        d.setDamage(maxDurability - durability);
+        item.getMeta().getPersistentDataContainer().remove(DURABILITY);
+        // max durability is still stored: an item's max_damage component is dropped if it equals its type's default
+        item.intTag(MAX_DURABILITY, maxDurability);
+        item.intTag(NATIVE_DURABILITY, 1);
+    }
+
+    private static void clearNative(ItemBuilder item, Damageable d){
+        boolean wasNative = item.getMeta().getPersistentDataContainer().has(NATIVE_DURABILITY, PersistentDataType.INTEGER);
+        item.getMeta().getPersistentDataContainer().remove(DURABILITY);
+        if (wasNative){
+            // the item goes back to its type's max durability, keeping the fraction of durability it had left
+            int vanillaMax = item.getItem().getType().getMaxDurability();
+            int maxDurability = nativeMax(item, d);
+            double fraction = Math.max(0, Math.min(1, (double) nativeDurability(maxDurability, d) / (double) maxDurability));
+            d.setDamage(0);
+            setMaxDamage(d, null);
+            d.setDamage(Math.max(0, Math.min(vanillaMax, vanillaMax - (int) Math.ceil(fraction * vanillaMax))));
+        }
+        item.getMeta().getPersistentDataContainer().remove(MAX_DURABILITY);
+        item.getMeta().getPersistentDataContainer().remove(NATIVE_DURABILITY);
+    }
+
+    private static int nativeMax(ItemBuilder item, Damageable d){
         try {
-            return (boolean) HAS_MAX_DAMAGE.invoke(d) && (int) GET_MAX_DAMAGE.invoke(d) != vanillaMax;
-        } catch (ReflectiveOperationException | RuntimeException ignored){
-            return true; // can't tell, so don't touch the item
+            if ((boolean) HAS_MAX_DAMAGE.invoke(d)) return Math.max(1, (int) GET_MAX_DAMAGE.invoke(d));
+        } catch (ReflectiveOperationException | RuntimeException ignored){}
+        return Math.max(1, item.getMeta().getPersistentDataContainer().getOrDefault(MAX_DURABILITY, PersistentDataType.INTEGER, (int) item.getItem().getType().getMaxDurability()));
+    }
+
+    private static int nativeDurability(int maxDurability, Damageable d){
+        return Math.max(0, maxDurability - d.getDamage());
+    }
+
+    private static boolean setMaxDamage(Damageable d, Integer maxDamage){
+        try {
+            SET_MAX_DAMAGE.invoke(d, maxDamage);
+            return true;
+        } catch (ReflectiveOperationException | RuntimeException e){
+            ValhallaMMO.logWarning("Could not set max durability of item: " + e);
+            return false;
         }
     }
 
     public static double getDurabilityFraction(ItemBuilder item){
         Material baseType = item.getItem().getType();
-        boolean hasCustom = item.getMeta().getPersistentDataContainer().has(DURABILITY, PersistentDataType.INTEGER);
+        boolean hasCustom = isCustom(item);
         int maxDurability = hasCustom ? getDurability(item, true) : baseType.getMaxDurability();
         if (baseType.getMaxDurability() > 0 && item.getMeta() instanceof Damageable d){
             if (hasCustom){
@@ -168,8 +278,12 @@ public class CustomDurabilityManager {
     public static int getDurability(ItemBuilder item, boolean max){
         Material baseType = item.getItem().getType();
         if (baseType.getMaxDurability() > 0 && item.getMeta() instanceof Damageable d){
-            boolean hasCustom = item.getMeta().getPersistentDataContainer().has(DURABILITY, PersistentDataType.INTEGER);
+            boolean hasCustom = isCustom(item);
             if (hasCustom) {
+                if (NATIVE){
+                    int maxDurability = nativeMax(item, d);
+                    return max ? maxDurability : nativeDurability(maxDurability, d);
+                }
                 return Math.max(0, item.getMeta().getPersistentDataContainer().getOrDefault(max ? MAX_DURABILITY : DURABILITY, PersistentDataType.INTEGER, 0));
             } else {
                 return max ? baseType.getMaxDurability() : baseType.getMaxDurability() - d.getDamage();
@@ -194,15 +308,29 @@ public class CustomDurabilityManager {
      * @param item the item to update
      */
     public static void updateLore(ItemBuilder item){
+        updateLore(item, -1);
+    }
+
+    /**
+     * Updates the item's lore to reflect custom durability changes like {@link #updateLore(ItemBuilder)}, but displays
+     * the given durability instead of the item's current one. Used if the item's durability is about to be changed by
+     * something other than the plugin.
+     * @param item the item to update
+     * @param displayedDurability the durability to display on the item, or a negative value to display its current durability
+     */
+    public static void updateLore(ItemBuilder item, int displayedDurability){
         Material baseType = item.getItem().getType();
         String translation = TranslationManager.getTranslation("translation_durability");
         if (baseType.getMaxDurability() > 0 && item.getMeta() instanceof Damageable d){
-            int maxVanillaDurability = baseType.getMaxDurability();
             int maxCustomDurability = getDurability(item, true);
             int customDurability = getDurability(item, false);
-            double fraction = Math.max(0, Math.min(1, (double) customDurability / (double) maxCustomDurability));
-            int newVanillaDurability = maxVanillaDurability - (int) Math.ceil(fraction * maxVanillaDurability);
-            d.setDamage(newVanillaDurability);
+            if (!NATIVE){
+                int maxVanillaDurability = baseType.getMaxDurability();
+                double fraction = Math.max(0, Math.min(1, (double) customDurability / (double) maxCustomDurability));
+                int newVanillaDurability = maxVanillaDurability - (int) Math.ceil(fraction * maxVanillaDurability);
+                d.setDamage(newVanillaDurability);
+            }
+            if (displayedDurability >= 0) customDurability = Math.min(maxCustomDurability, displayedDurability);
 
             if (CustomFlag.hasFlag(item.getMeta(), CustomFlag.HIDE_DURABILITY) || !hasCustomDurability(item.getMeta())){
                 ItemUtils.removeIfLoreContains(item, translation);
