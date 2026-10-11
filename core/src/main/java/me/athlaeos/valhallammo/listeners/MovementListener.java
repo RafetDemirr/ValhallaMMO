@@ -26,6 +26,8 @@ import java.util.*;
 
 public class MovementListener implements Listener {
     private static final Map<UUID, Vector> lastMovementVectors = new HashMap<>();
+    private static final Map<UUID, Long> lastMovementTimestamps = new HashMap<>();
+    private static final long MOVEMENT_STALE_MILLIS = 150; // ~3 ticks
     private static final boolean isCustomDamageSystemEnabled = ValhallaMMO.getPluginConfig().getBoolean("custom_damage_system");
 
     public MovementListener(){
@@ -63,7 +65,12 @@ public class MovementListener implements Listener {
             lastMovementVectors.remove(e.getPlayer().getUniqueId());
             return;
         }
-        lastMovementVectors.put(e.getPlayer().getUniqueId(), e.getTo().toVector().subtract(e.getFrom().toVector()));
+        Vector movement = e.getTo().toVector().subtract(e.getFrom().toVector());
+        // rotation-only moves (looking around) also fire this event with a zero vector, which would wipe out the
+        // player's actual movement right as they aim at a target. those are ignored, staleness is handled by timestamp
+        if (movement.lengthSquared() == 0) return;
+        lastMovementVectors.put(e.getPlayer().getUniqueId(), movement);
+        lastMovementTimestamps.put(e.getPlayer().getUniqueId(), System.currentTimeMillis());
     }
 
     public static void resetAttributeStats(Player p){
@@ -132,5 +139,15 @@ public class MovementListener implements Listener {
      */
     public static Map<UUID, Vector> getLastMovementVectors() {
         return lastMovementVectors;
+    }
+
+    /**
+     * @return the player's last positional movement vector, or null if they haven't actually changed position within
+     * the last {@link #MOVEMENT_STALE_MILLIS} milliseconds (i.e. they are standing still)
+     */
+    public static Vector getRecentMovementVector(UUID uuid) {
+        Long timestamp = lastMovementTimestamps.get(uuid);
+        if (timestamp == null || System.currentTimeMillis() - timestamp > MOVEMENT_STALE_MILLIS) return null;
+        return lastMovementVectors.get(uuid);
     }
 }

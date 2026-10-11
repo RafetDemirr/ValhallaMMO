@@ -22,7 +22,7 @@ public class TradingReputationGiftChanceSource implements AccumulativeStatSource
     public double fetch(Entity victim, Entity attackedBy, boolean use) {
         if (!(victim instanceof AbstractVillager v) || !(attackedBy instanceof Player p)) return 0;
 
-        MerchantData data = CustomMerchantManager.getMerchantDataPersistence().getAllData().get(v.getUniqueId());
+        MerchantData data = CustomMerchantManager.getMerchantDataPersistence().getCachedData(v.getUniqueId());
         if (data == null) return 0;
         TradingProfile profile = ProfileCache.getOrCache(p, TradingProfile.class);
         MerchantData.MerchantPlayerMemory memory = data.getPlayerMemory(p.getUniqueId());

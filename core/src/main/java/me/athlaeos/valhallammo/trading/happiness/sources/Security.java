@@ -26,7 +26,7 @@ public class Security implements HappinessSource {
 
     @Override
     public float get(Player contextPlayer, Entity entity) {
-        MerchantData data = CustomMerchantManager.getMerchantDataPersistence().getAllData().get(entity.getUniqueId());
+        MerchantData data = CustomMerchantManager.getMerchantDataPersistence().getCachedData(entity.getUniqueId());
         if (data == null || contextPlayer == null) return 0;
         long timeLastTradedWith = -1;
         for (MerchantData.TradeData d : data.getTrades().values()){

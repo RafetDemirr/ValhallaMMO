@@ -280,10 +280,16 @@ public class EntityAttackListener implements Listener {
                 } else {
                     // melee damage buffs
                     damageMultiplier = getDamageMultiplier(damageMultiplier, 1 + AccumulativeStatManager.getCachedRelationalStats(combatType == CombatType.MELEE_UNARMED ? "UNARMED_DAMAGE_DEALT" : "MELEE_DAMAGE_DEALT", v, e.getDamager(), 10000, true));
-                    if (cause == null || EntityDamagedListener.getPhysicalDamageTypes().containsKey(cause)) {
+                    // `cause` is the victim's *previous* damage cause and a raw cause (e.g. ENTITY_ATTACK) rather than its
+                    // custom type (e.g. MELEE), which caused velocity damage to only ever work on the first hit. so the
+                    // current hit's cause is used here, mapped to its custom type the same way armor mitigation does
+                    String hitCause = Utils.thisorDefault(EntityUtils.getCustomDamageType(v), ValhallaMMO.getNms().getDamageTypeFromEvent(e));
+                    CustomDamageType hitType = CustomDamageType.getCustomType(hitCause);
+                    Map<String, Double> physicalTypes = EntityDamagedListener.getPhysicalDamageTypes();
+                    if (physicalTypes.containsKey(hitCause) || (hitType != null && physicalTypes.containsKey(hitType.getType()))) {
                         double velocityBonus = AccumulativeStatManager.getRelationalStats("VELOCITY_DAMAGE_BONUS", v, e.getDamager(), true);
                         if (velocityBonus > 0 && e.getDamager() instanceof LivingEntity l){
-                            Vector moveSpeedDirection = MovementListener.getLastMovementVectors().get(e.getDamager().getUniqueId());
+                            Vector moveSpeedDirection = MovementListener.getRecentMovementVector(e.getDamager().getUniqueId());
                             if (moveSpeedDirection != null){
                                 double speed = moveSpeedDirection.length();
                                 double multiplier = Math.max(0, l.getEyeLocation().getDirection().dot(moveSpeedDirection.clone().normalize()));

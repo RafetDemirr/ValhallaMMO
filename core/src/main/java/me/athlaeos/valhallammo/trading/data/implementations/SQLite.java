@@ -12,6 +12,7 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class SQLite extends MerchantDataPersistence implements Database {
     private Connection conn;
@@ -74,38 +75,68 @@ public class SQLite extends MerchantDataPersistence implements Database {
     public void setData(UUID id, MerchantData data) {
         if (data == null) {
             allData.remove(id);
+            absentData.add(id);
             ValhallaMMO.getInstance().getServer().getScheduler().runTaskAsynchronously(ValhallaMMO.getInstance(), () -> removeData(id));
-        } else allData.put(id, data);
+        } else {
+            absentData.remove(id);
+            allData.put(id, data);
+        }
     }
+
+    // callbacks waiting on a query that is already running, so the same merchant is never queried more than once at a time
+    private final Map<UUID, List<Callback<MerchantData>>> pendingLoads = new ConcurrentHashMap<>();
 
     @Override
     public void getData(UUID id, Callback<MerchantData> callback) {
-        if (allData.containsKey(id)) {
-            callback.whenReady(allData.get(id));
+        MerchantData cached = allData.get(id);
+        if (cached != null || absentData.contains(id)) {
+            callback.whenReady(cached);
             return;
         }
+        boolean[] alreadyLoading = {true};
+        pendingLoads.compute(id, (k, waiting) -> {
+            if (waiting == null) {
+                waiting = new ArrayList<>();
+                alreadyLoading[0] = false;
+            }
+            waiting.add(callback);
+            return waiting;
+        });
+        if (alreadyLoading[0]) return;
+
         new BukkitRunnable(){
             @Override
             public void run() {
-                try {
-                    PreparedStatement stmt = conn.prepareStatement("SELECT * FROM merchants WHERE id = ?;");
+                MerchantData data = null;
+                boolean notifyCallbacks = false;
+                try (PreparedStatement stmt = conn.prepareStatement("SELECT * FROM merchants WHERE id = ?;")) {
                     stmt.setString(1, id.toString());
-                    MerchantData data = null;
-                    ResultSet result = stmt.executeQuery();
-                    if (result.next()) {
-                        data = MerchantData.deserialize(result.getString("data"));
-                        allData.put(id, data);
-                        callback.whenReady(data);
-                    } else {
+                    try (ResultSet result = stmt.executeQuery()) {
+                        if (result.next()) data = MerchantData.deserialize(result.getString("data"));
+                        if (data != null) allData.put(id, data);
                         // Cache the absence too, otherwise isCached() would never return true for merchants
                         // without stored data and callers depending on a synchronous callback would stall forever
-                        allData.put(id, null);
-                        callback.whenReady(null);
+                        else absentData.add(id);
                     }
+                    notifyCallbacks = true;
                 } catch (SQLException ex){
                     ValhallaMMO.logSevere("SQLException when trying to fetch MerchantData with id " + id);
                     ex.printStackTrace();
-                    callback.whenReady(null);
+                    notifyCallbacks = true;
+                } finally {
+                    // always release the pending entry, or every later lookup of this merchant would wait on it forever.
+                    // on an unexpected error (e.g. corrupt data) callbacks aren't run, as they weren't before either,
+                    // so nothing treats the merchant as data-less and overwrites what's stored
+                    List<Callback<MerchantData>> waiting = pendingLoads.remove(id);
+                    if (notifyCallbacks && waiting != null) {
+                        for (Callback<MerchantData> c : waiting) {
+                            try {
+                                c.whenReady(data);
+                            } catch (RuntimeException ex) {
+                                ex.printStackTrace();
+                            }
+                        }
+                    }
                 }
             }
         }.runTaskAsynchronously(ValhallaMMO.getInstance());

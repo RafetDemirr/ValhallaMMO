@@ -28,7 +28,7 @@ public class PlayerRelation implements HappinessSource {
     }
 
     private Pair<Float, Float> getValues(Player contextPlayer, Entity entity){
-        MerchantData data = CustomMerchantManager.getMerchantDataPersistence().getAllData().get(entity.getUniqueId());
+        MerchantData data = CustomMerchantManager.getMerchantDataPersistence().getCachedData(entity.getUniqueId());
         if (data == null || contextPlayer == null) return new Pair<>(0F, 0F);
         MerchantData.MerchantPlayerMemory memory = data.getPlayerMemory(contextPlayer.getUniqueId());
         return new Pair<>(renownHappiness * memory.getRenownReputation(), reputationHappiness * memory.getTradingReputation());
