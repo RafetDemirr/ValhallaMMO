@@ -73,6 +73,7 @@ public class DynamicGridRecipe implements ValhallaRecipe, ValhallaKeyedRecipe {
         if (shaped != null) ValhallaMMO.getInstance().getServer().addRecipe(shaped);
         else ValhallaMMO.logWarning("Could not generate recipe for " + getName() + ", it has no ingredients!");
         if (shapeless != null) ValhallaMMO.getInstance().getServer().addRecipe(shapeless);
+        applyRecipeBookDisplays(shaped != null, shapeless != null);
     }
 
     @Override
@@ -157,6 +158,45 @@ public class DynamicGridRecipe implements ValhallaRecipe, ValhallaKeyedRecipe {
 
         if (ValhallaMMO.getNms() != null) ValhallaMMO.getNms().applyRecipeBookCategory(recipe, getEffectiveBookCategory());
         return recipe;
+    }
+
+    /**
+     * The recipes are registered by material, so the recipe book would show plain vanilla items for custom ingredients.
+     * This tells the server which item to actually draw for each ingredient.
+     */
+    private void applyRecipeBookDisplays(boolean shaped, boolean shapeless){
+        if (ValhallaMMO.getNms() == null) return;
+        try {
+            SlotEntry tool = items.get(toolIndex);
+            if (shaped){
+                ShapeDetails details = getRecipeShapeStrings();
+                List<ItemStack> displays = new ArrayList<>();
+                for (String row : details.shape){
+                    for (char c : row.toCharArray()){
+                        SlotEntry entry = details.items.get(c);
+                        displays.add(entry == null || entry.equals(tool) ? null : recipeBookIngredient(entry));
+                    }
+                }
+                ValhallaMMO.getNms().applyRecipeBookDisplay(shapedKey, displays);
+            }
+            if (shapeless){
+                List<ItemStack> displays = new ArrayList<>();
+                for (Integer i : items.keySet()) displays.add(i == toolIndex ? null : recipeBookIngredient(items.get(i)));
+                ValhallaMMO.getNms().applyRecipeBookDisplay(shapelessKey, displays);
+            }
+        } catch (Throwable t){
+            ValhallaMMO.logWarning("Could not set the recipe book display of " + getName() + ", it will show plain ingredients: " + t);
+        }
+    }
+
+    /** @return the item the recipe book should draw for this ingredient, or null if the plain material is fine */
+    private ItemStack recipeBookIngredient(SlotEntry entry){
+        if (entry == null || ItemUtils.isEmpty(entry.getItem()) || !entry.getItem().hasItemMeta()) return null;
+        ItemBuilder item = new ItemBuilder(entry.getItem());
+        TranslationManager.translateItem(item);
+        ItemStack display = item.get().clone();
+        display.setAmount(1);
+        return display;
     }
 
     private ItemStack recipeBookIcon(ItemStack i){

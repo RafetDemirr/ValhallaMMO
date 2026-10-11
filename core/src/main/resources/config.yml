@@ -304,6 +304,11 @@ chunk_exp_orbs_nerf_factor: 0.3 # EXP orbs dropped in debuffed chunks are multip
 # For reference, walking velocity is about 0.23, running speed is 0.3, sprint jumping is 0.37
 velocity_damage_constant: 0.33
 
+# Projectiles hitting the top part of a person shaped entity (players, zombies, skeletons, illagers, villagers, witches, piglins)
+# count as headshots, which deal bonus damage if the shooter has headshot damage.
+# This is the fraction of the entity's height, measured from the top, that counts as its head
+headshot_height_fraction: 0.25
+
 # Flat damage bonus applied to melee and unarmed attacks depending on what the attacker is holding in their
 # off hand. Values are fractions, so 0.1 is +10% and -0.1 is -10%. Both default to 0, meaning no effect.
 # Only the slot being empty or not is checked, the item itself does not matter.

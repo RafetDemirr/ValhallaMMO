@@ -15,15 +15,22 @@ import me.athlaeos.valhallammo.version.EnchantmentMappings;
 import me.athlaeos.valhallammo.version.PotionEffectMappings;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.game.ClientboundBlockDestructionPacket;
 import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
 import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.entity.schedule.Activity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.*;
+import net.minecraft.world.item.crafting.display.RecipeDisplay;
+import net.minecraft.world.item.crafting.display.ShapedCraftingRecipeDisplay;
+import net.minecraft.world.item.crafting.display.ShapelessCraftingRecipeDisplay;
+import net.minecraft.world.item.crafting.display.SlotDisplay;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
@@ -32,6 +39,7 @@ import net.minecraft.world.level.levelgen.structure.StructureStart;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
+import org.bukkit.craftbukkit.v1_21_R7.CraftServer;
 import org.bukkit.craftbukkit.v1_21_R7.CraftWorld;
 import org.bukkit.craftbukkit.v1_21_R7.block.data.CraftBlockData;
 import org.bukkit.craftbukkit.v1_21_R7.entity.CraftEntity;
@@ -39,6 +47,7 @@ import org.bukkit.craftbukkit.v1_21_R7.entity.CraftLivingEntity;
 import org.bukkit.craftbukkit.v1_21_R7.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_21_R7.generator.structure.CraftStructureType;
 import org.bukkit.craftbukkit.v1_21_R7.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.v1_21_R7.util.CraftNamespacedKey;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -561,5 +570,91 @@ public final class NMS_v1_21_R7 implements NMS {
             return key.toString();
         }
         return NMS.super.getDamageTypeFromEvent(e);
+    }
+
+    private static boolean recipeDisplayRefreshPending = false;
+
+    /**
+     * Replaces the registered recipe with a copy that tells the client which exact items to draw in the recipe book.
+     * Matching and crafting are untouched: the copy has the same ingredients and result, only its display differs.
+     */
+    @Override
+    public void applyRecipeBookDisplay(NamespacedKey key, List<org.bukkit.inventory.ItemStack> slotDisplays) {
+        if (slotDisplays == null || slotDisplays.stream().allMatch(Objects::isNull)) return;
+        RecipeManager manager = ((CraftServer) Bukkit.getServer()).getServer().getRecipeManager();
+        ResourceKey<Recipe<?>> id = ResourceKey.create(Registries.RECIPE, CraftNamespacedKey.toMinecraft(key));
+        RecipeHolder<?> holder = manager.byKey(id).orElse(null);
+        if (holder == null) return;
+        List<ItemStack> displays = new ArrayList<>();
+        for (org.bukkit.inventory.ItemStack i : slotDisplays) displays.add(ItemUtils.isEmpty(i) ? null : CraftItemStack.asNMSCopy(i));
+
+        Recipe<?> replacement;
+        if (holder.value() instanceof ShapedRecipe shaped && !(shaped instanceof DisplayedShapedRecipe)) {
+            if (displays.size() != shaped.getWidth() * shaped.getHeight()) return;
+            ShapedRecipePattern pattern = new ShapedRecipePattern(shaped.getWidth(), shaped.getHeight(), shaped.getIngredients(), Optional.empty());
+            replacement = new DisplayedShapedRecipe(shaped, pattern, CraftItemStack.asNMSCopy(shaped.toBukkitRecipe(key).getResult()), displays);
+        } else if (holder.value() instanceof ShapelessRecipe shapeless && !(shapeless instanceof DisplayedShapelessRecipe)) {
+            List<Ingredient> ingredients = shapeless.placementInfo().ingredients();
+            if (displays.size() != ingredients.size()) return;
+            replacement = new DisplayedShapelessRecipe(shapeless, CraftItemStack.asNMSCopy(shapeless.toBukkitRecipe(key).getResult()), ingredients, displays);
+        } else return;
+
+        // swapped directly in the recipe map, the displays are rebuilt once for all recipes changed in this tick
+        manager.recipes.removeRecipe(id);
+        manager.recipes.addRecipe(new RecipeHolder<>(id, replacement));
+        if (recipeDisplayRefreshPending || !ValhallaMMO.getInstance().isEnabled()) return;
+        recipeDisplayRefreshPending = true;
+        ValhallaMMO.getInstance().getServer().getScheduler().runTask(ValhallaMMO.getInstance(), () -> {
+            recipeDisplayRefreshPending = false;
+            manager.finalizeRecipeLoading();
+        });
+    }
+
+    private static List<SlotDisplay> slotDisplays(List<SlotDisplay> defaults, List<ItemStack> overrides){
+        List<SlotDisplay> slots = new ArrayList<>(defaults);
+        for (int i = 0; i < slots.size() && i < overrides.size(); i++){
+            if (overrides.get(i) != null) slots.set(i, new SlotDisplay.ItemStackSlotDisplay(overrides.get(i)));
+        }
+        return slots;
+    }
+
+    private static final class DisplayedShapedRecipe extends ShapedRecipe {
+        private final List<ItemStack> displays;
+
+        private DisplayedShapedRecipe(ShapedRecipe original, ShapedRecipePattern pattern, ItemStack result, List<ItemStack> displays){
+            super(original.group(), original.category(), pattern, result, original.showNotification());
+            this.displays = displays;
+        }
+
+        @Override
+        public List<RecipeDisplay> display() {
+            List<RecipeDisplay> converted = new ArrayList<>();
+            for (RecipeDisplay display : super.display()){
+                if (display instanceof ShapedCraftingRecipeDisplay d && d.ingredients().size() == displays.size())
+                    converted.add(new ShapedCraftingRecipeDisplay(d.width(), d.height(), slotDisplays(d.ingredients(), displays), d.result(), d.craftingStation()));
+                else converted.add(display);
+            }
+            return converted;
+        }
+    }
+
+    private static final class DisplayedShapelessRecipe extends ShapelessRecipe {
+        private final List<ItemStack> displays;
+
+        private DisplayedShapelessRecipe(ShapelessRecipe original, ItemStack result, List<Ingredient> ingredients, List<ItemStack> displays){
+            super(original.group(), original.category(), result, ingredients);
+            this.displays = displays;
+        }
+
+        @Override
+        public List<RecipeDisplay> display() {
+            List<RecipeDisplay> converted = new ArrayList<>();
+            for (RecipeDisplay display : super.display()){
+                if (display instanceof ShapelessCraftingRecipeDisplay d && d.ingredients().size() == displays.size())
+                    converted.add(new ShapelessCraftingRecipeDisplay(slotDisplays(d.ingredients(), displays), d.result(), d.craftingStation()));
+                else converted.add(display);
+            }
+            return converted;
+        }
     }
 }

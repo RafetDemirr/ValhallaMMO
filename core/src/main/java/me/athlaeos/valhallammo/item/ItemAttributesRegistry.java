@@ -210,8 +210,28 @@ public class ItemAttributesRegistry {
         register(new AttributeDisplayWrapper("DAMAGE_BOSS", StatFormat.PERCENTILE_BASE_1_P1, "\uEEB7", (i) -> i >= 0).addModifier(Material.DRAGON_EGG));
         register(new AttributeDisplayWrapper("DAMAGE_ILLAGER", StatFormat.PERCENTILE_BASE_1_P1, "\uEEB8", (i) -> i >= 0).addModifier(Material.TOTEM_OF_UNDYING));
         register(new AttributeDisplayWrapper("BUTCHERY_DROPS", StatFormat.PERCENTILE_BASE_1_P1, "\uEEB9", (i) -> i >= 0).addModifier(Material.BEEF));
-        register(new AttributeDisplayWrapper("ABSORPTION_DAMAGE_BONUS", StatFormat.PERCENTILE_BASE_1_P1, "\uEE19", (i) -> i >= 0).addModifier(Material.GOLDEN_APPLE)); // no glyph of its own, uses the melee damage one
-        register(new AttributeDisplayWrapper("BACKSTAB_DAMAGE", StatFormat.PERCENTILE_BASE_1_P1, "\uEE19", (i) -> i >= 0).addModifier(Material.SHEARS)); // no glyph of its own, uses the melee damage one
+        register(new AttributeDisplayWrapper("ABSORPTION_DAMAGE_BONUS", StatFormat.PERCENTILE_BASE_1_P1, "\uEA58", (i) -> i >= 0).addModifier(Material.GOLDEN_APPLE));
+        register(new AttributeDisplayWrapper("BACKSTAB_DAMAGE", StatFormat.PERCENTILE_BASE_1_P1, "\uEA02", (i) -> i >= 0).addModifier(Material.SHEARS));
+        register(new AttributeDisplayWrapper("SMITHING_EXP_GAIN", StatFormat.PERCENTILE_BASE_1_P1, "\uEE44", (i) -> i >= 0).addModifier(Material.ANVIL));
+        register(new AttributeDisplayWrapper("ALCHEMY_EXP_GAIN", StatFormat.PERCENTILE_BASE_1_P1, "\uEE44", (i) -> i >= 0).addModifier(Material.BREWING_STAND));
+        register(new AttributeDisplayWrapper("ENCHANTING_EXP_GAIN", StatFormat.PERCENTILE_BASE_1_P1, "\uEE44", (i) -> i >= 0).addModifier(Material.ENCHANTING_TABLE));
+        register(new AttributeDisplayWrapper("FARMING_EXP_GAIN", StatFormat.PERCENTILE_BASE_1_P1, "\uEE44", (i) -> i >= 0).addModifier(Material.WHEAT));
+        register(new AttributeDisplayWrapper("MINING_EXP_GAIN", StatFormat.PERCENTILE_BASE_1_P1, "\uEE44", (i) -> i >= 0).addModifier(Material.IRON_PICKAXE));
+        register(new AttributeDisplayWrapper("DIGGING_EXP_GAIN", StatFormat.PERCENTILE_BASE_1_P1, "\uEE44", (i) -> i >= 0).addModifier(Material.IRON_SHOVEL));
+        register(new AttributeDisplayWrapper("WOODCUTTING_EXP_GAIN", StatFormat.PERCENTILE_BASE_1_P1, "\uEE44", (i) -> i >= 0).addModifier(Material.IRON_AXE));
+        register(new AttributeDisplayWrapper("FISHING_EXP_GAIN", StatFormat.PERCENTILE_BASE_1_P1, "\uEE44", (i) -> i >= 0).addModifier(Material.FISHING_ROD));
+        register(new AttributeDisplayWrapper("ARCHERY_EXP_GAIN", StatFormat.PERCENTILE_BASE_1_P1, "\uEE44", (i) -> i >= 0).addModifier(Material.BOW));
+        register(new AttributeDisplayWrapper("LIGHT_ARMOR_EXP_GAIN", StatFormat.PERCENTILE_BASE_1_P1, "\uEE44", (i) -> i >= 0).addModifier(Material.LEATHER_CHESTPLATE));
+        register(new AttributeDisplayWrapper("HEAVY_ARMOR_EXP_GAIN", StatFormat.PERCENTILE_BASE_1_P1, "\uEE44", (i) -> i >= 0).addModifier(Material.IRON_CHESTPLATE));
+        register(new AttributeDisplayWrapper("LIGHT_WEAPONS_EXP_GAIN", StatFormat.PERCENTILE_BASE_1_P1, "\uEE44", (i) -> i >= 0).addModifier(Material.IRON_SWORD));
+        register(new AttributeDisplayWrapper("HEAVY_WEAPONS_EXP_GAIN", StatFormat.PERCENTILE_BASE_1_P1, "\uEE44", (i) -> i >= 0).addModifier(Material.NETHERITE_AXE));
+        register(new AttributeDisplayWrapper("MARTIAL_ARTS_EXP_GAIN", StatFormat.PERCENTILE_BASE_1_P1, "\uEE44", (i) -> i >= 0).addModifier(Material.RABBIT_FOOT));
+        register(new AttributeDisplayWrapper("TRADING_EXP_GAIN", StatFormat.PERCENTILE_BASE_1_P1, "\uEE44", (i) -> i >= 0).addModifier(Material.EMERALD));
+        register(new AttributeDisplayWrapper("TRADING_DISCOUNT", StatFormat.PERCENTILE_BASE_1_P1, "\uEA43", (i) -> i >= 0).addModifier(Material.EMERALD_BLOCK));
+        register(new AttributeDisplayWrapper("DEATH_EXP_RETENTION", StatFormat.PERCENTILE_BASE_1_P1, "\uEA15", (i) -> i >= 0).addModifier(Material.TOTEM_OF_UNDYING));
+        register(new AttributeDisplayWrapper("HEADSHOT_DAMAGE", StatFormat.PERCENTILE_BASE_1_P1, "\uEA47", (i) -> i >= 0).addModifier(Material.TARGET));
+        register(new AttributeDisplayWrapper("POTION_DURATION_BONUS", StatFormat.PERCENTILE_BASE_1_P1, "\uEA41", (i) -> i >= 0).addModifier(Material.HONEY_BOTTLE));
+        register(new AttributeDisplayWrapper("POTION_DEBUFF_BONUS", StatFormat.PERCENTILE_BASE_1_P1, "\uEA19", (i) -> i <= 0).addModifier(Material.FERMENTED_SPIDER_EYE));
 
         addVanillaStat(Material.WOODEN_SWORD, getCopy("GENERIC_ATTACK_DAMAGE").setValue(4), getCopy("GENERIC_ATTACK_SPEED").setValue(1.6));
         addVanillaStat(Material.WOODEN_PICKAXE, getCopy("GENERIC_ATTACK_DAMAGE").setValue(2), getCopy("GENERIC_ATTACK_SPEED").setValue(1.2), getCopy("MINING_SPEED").setValue(2).setHidden(true));

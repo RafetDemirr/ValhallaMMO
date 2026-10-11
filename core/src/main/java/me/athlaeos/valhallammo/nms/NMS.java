@@ -169,6 +169,16 @@ public interface NMS extends Listener {
         recipe.setCategory(parseCraftingBookCategory(category));
     }
 
+    /**
+     * Makes the recipe book draw the given items for the ingredients of an already registered grid recipe, instead of
+     * the plain materials the recipe matches on. Only has an effect on versions where the server decides what the
+     * recipe book shows (1.21.11 module); crafting itself is not affected.
+     * @param key the key of the registered recipe
+     * @param slotDisplays the item to show per ingredient, in the recipe's ingredient order (row by row for shaped
+     *                     recipes). Null entries keep the default display.
+     */
+    default void applyRecipeBookDisplay(NamespacedKey key, List<ItemStack> slotDisplays){}
+
     private static CraftingBookCategory parseCraftingBookCategory(String category){
         if (category == null) return CraftingBookCategory.MISC;
         try {

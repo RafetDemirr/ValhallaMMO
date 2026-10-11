@@ -45,12 +45,16 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.potion.PotionEffect;
+import org.bukkit.util.BoundingBox;
+import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 import java.util.*;
 
 public class EntityAttackListener implements Listener {
-    private static final double facingAngleCos = MathUtils.cos(ValhallaMMO.getPluginConfig().getDouble("facing_angle", 70));
+    // facing_angle is configured in degrees. It used to be passed to cos() as if it were radians, which made the angle
+    // meaningless: 70 behaved like roughly 51 degrees, and 60 like roughly 162 degrees (victims "facing" attackers behind them)
+    private static final double facingAngleCos = Math.cos(Math.toRadians(ValhallaMMO.getPluginConfig().getDouble("facing_angle", 70)));
 
     private final boolean requireFacingForDodge = ValhallaMMO.getPluginConfig().getBoolean("prevent_dodge_not_facing_attacker", true);
     private final Particle dodgeParticle = Catch.catchOrElse(() -> Particle.valueOf(ValhallaMMO.getPluginConfig().getString("dodge_effect")), Particle.SWEEP_ATTACK, "Invalid dodge particle effect given, used default");
@@ -67,6 +71,7 @@ public class EntityAttackListener implements Listener {
     private final double meleeDamage = ValhallaMMO.getPluginConfig().getDouble("trident_impaling_damage_melee");
     private final boolean tridentImpalingDamageOnlyInWater = ValhallaMMO.getPluginConfig().getBoolean("trident_impaling_damage_water");
     private final double velocityDamageConstant = ValhallaMMO.getPluginConfig().getDouble("velocity_damage_constant");
+    private final double headshotHeightFraction = ValhallaMMO.getPluginConfig().getDouble("headshot_height_fraction", 0.25);
     private final Particle shockwaveParticle = Catch.catchOrElse(() -> Particle.valueOf(ValhallaMMO.getPluginConfig().getString("power_attack_shockwave_particle")), null, "Invalid power attack shockwave particle given in config.yml power_attack_shockwave_particle");
 
     private static final boolean multiplyDamageNumbers = ValhallaMMO.getPluginConfig().getBoolean("damage_multipliers_multiplicative");
@@ -274,9 +279,11 @@ public class EntityAttackListener implements Listener {
                 // as mentioned previously mechanics where the victim's stats have to be fetched on an attack, these mechanics do not activate on sweeping hits.
                 // unlike them, attacker mechanics don't need to worry about that since their stats are cached and fetched without going through all their stat sources.
                 damageMultiplier = getDamageMultiplier(damageMultiplier, 1 + AccumulativeStatManager.getCachedRelationalStats("DAMAGE_DEALT", v, e.getDamager(), 10000, true));
-                if (e.getDamager() instanceof Projectile) {
+                if (e.getDamager() instanceof Projectile projectile) {
                     // ranged damage buffs
                     damageMultiplier = getDamageMultiplier(damageMultiplier, 1 + AccumulativeStatManager.getCachedRelationalStats("RANGED_DAMAGE_DEALT", v, e.getDamager(), 10000, true));
+                    // headshot damage: bonus damage for projectiles hitting the top part of a humanoid victim
+                    if (isHeadshot(projectile, v)) damageMultiplier = getDamageMultiplier(damageMultiplier, 1 + AccumulativeStatManager.getCachedRelationalStats("HEADSHOT_DAMAGE_BONUS", v, e.getDamager(), 10000, true));
                 } else {
                     // melee damage buffs
                     damageMultiplier = getDamageMultiplier(damageMultiplier, 1 + AccumulativeStatManager.getCachedRelationalStats(combatType == CombatType.MELEE_UNARMED ? "UNARMED_DAMAGE_DEALT" : "MELEE_DAMAGE_DEALT", v, e.getDamager(), 10000, true));
@@ -436,6 +443,29 @@ public class EntityAttackListener implements Listener {
     public static double getDamageMultiplier(double original, double multiplier){
         if (multiplier == 1) return original;
         return multiplyDamageNumbers ? (original * multiplier) : (original + (multiplier - 1));
+    }
+
+    /**
+     * A projectile hit counts as a headshot if it lands on the top part of the victim's hitbox. Only victims shaped
+     * like a person qualify, as that's the only shape where the top of the hitbox is actually their head.
+     * @param projectile the projectile that hit the victim
+     * @param victim the entity that was hit
+     * @return true if the projectile hit the victim's head
+     */
+    private boolean isHeadshot(Projectile projectile, LivingEntity victim){
+        if (!(victim instanceof HumanEntity || victim instanceof Zombie || victim instanceof AbstractSkeleton || victim instanceof Illager ||
+                victim instanceof AbstractVillager || victim instanceof Witch || victim instanceof PiglinAbstract)) return false;
+        BoundingBox box = victim.getBoundingBox();
+        double headStart = box.getMaxY() - (box.getHeight() * headshotHeightFraction);
+        // the projectile hasn't moved into the victim yet when it hits, so the point of impact is found by following its path
+        Vector start = projectile.getLocation().toVector();
+        Vector direction = projectile.getVelocity();
+        double hitY = start.getY();
+        if (direction.lengthSquared() > 0.0001){
+            RayTraceResult hit = box.rayTrace(start, direction.clone().normalize(), direction.length() + 3);
+            if (hit != null) hitY = hit.getHitPosition().getY();
+        }
+        return hitY >= headStart;
     }
 
     private static final Collection<UUID> critNextAttack = new HashSet<>();

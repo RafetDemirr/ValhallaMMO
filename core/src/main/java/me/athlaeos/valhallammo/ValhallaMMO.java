@@ -87,6 +87,8 @@ public class ValhallaMMO extends JavaPlugin {
 
     private static boolean enabled = true;
     private static boolean disabling = false;
+    // whether onEnable() ran to completion. If it didn't, the registries were not (fully) loaded and must not be saved on disable
+    private static boolean fullyEnabled = false;
 
     @Override
     public void onLoad() {
@@ -265,6 +267,7 @@ public class ValhallaMMO extends JavaPlugin {
         registerListener(new ImmersiveRecipeListener());
         registerListener(new InteractListener());
         registerListener(new ItemConsumptionListener());
+        registerListener(new PotionDurationListener());
         registerListener(new ItemDamageListener());
         registerListener(new JoinLeaveListener());
         registerListener(new PotionBeltListener());
@@ -341,6 +344,7 @@ public class ValhallaMMO extends JavaPlugin {
         }
 
         for (PluginHook hook : activeHooks.values()) hook.whenPresent();
+        fullyEnabled = true;
     }
 
     @Override
@@ -370,18 +374,24 @@ public class ValhallaMMO extends JavaPlugin {
             CustomBreakSpeedListener.removeFatiguedPlayer(p);
         }
 
-        CustomRecipeRegistry.saveRecipes(false);
-        LootTableRegistry.saveAll();
-        ArmorSetRegistry.saveArmorSets();
-        CustomItemRegistry.saveItems();
-        if (tradingSystemEnabled) {
-            CustomMerchantManager.saveAll();
-            ServiceRegistry.saveServices();
+        if (fullyEnabled) {
+            CustomRecipeRegistry.saveRecipes(false);
+            LootTableRegistry.saveAll();
+            ArmorSetRegistry.saveArmorSets();
+            CustomItemRegistry.saveItems();
+            if (tradingSystemEnabled) {
+                CustomMerchantManager.saveAll();
+                ServiceRegistry.saveServices();
+            }
+            GlobalEffect.saveActiveGlobalEffects();
+            PartyManager.saveParties();
+            PotionBelt.saveToFile();
+        } else {
+            // If enabling failed halfway (for example because an addon referenced by the saved items or recipes is missing)
+            // the registries are empty or incomplete. Saving them would overwrite the files with that and wipe everything.
+            logSevere("ValhallaMMO did not finish enabling, so items, recipes, loot tables, armor sets, trading data, parties, potion belts and global effects are NOT being saved to prevent the existing files from being overwritten. Fix the error above and restart.");
         }
-        GlobalEffect.saveActiveGlobalEffects();
-        PartyManager.saveParties();
         JumpListener.onServerStop();
-        PotionBelt.saveToFile();
         if (packetListener != null) packetListener.closeAll();
         Host.stop();
     }

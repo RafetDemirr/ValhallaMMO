@@ -99,6 +99,10 @@ public class AccumulativeStatManager {
         registerOffensive("VELOCITY_DAMAGE_BONUS", new AttributeAttackerSource("VELOCITY_DAMAGE"), new PotionEffectAttackerSource("VELOCITY_DAMAGE"));
         registerOffensive("ABSORPTION_DAMAGE_BONUS", new AttributeAttackerSource("ABSORPTION_DAMAGE_BONUS"));
         registerOffensive("BACKSTAB_DAMAGE_BONUS", new AttributeAttackerSource("BACKSTAB_DAMAGE"));
+        registerOffensive("HEADSHOT_DAMAGE_BONUS", new AttributeAttackerSource("HEADSHOT_DAMAGE").proj());
+        register("DEATH_EXP_RETENTION", new AttributeSource("DEATH_EXP_RETENTION"));
+        register("POTION_DURATION_BONUS", new AttributeSource("POTION_DURATION_BONUS"));
+        register("POTION_DEBUFF_BONUS", new AttributeSource("POTION_DEBUFF_BONUS"));
         registerOffensive("LIGHT_ARMOR_DAMAGE_BONUS", new ProfileStatAttackerWeightSource(MartialArtsProfile.class, "damageToLightArmorMultiplier", WeightClass.WEIGHTLESS), new ProfileStatAttackerWeightSource(HeavyWeaponsProfile.class, "damageToLightArmorMultiplier", WeightClass.HEAVY), new ProfileStatAttackerWeightSource(LightWeaponsProfile.class, "damageToLightArmorMultiplier", WeightClass.LIGHT), new AttributeAttackerSource("LIGHT_ARMOR_DAMAGE"), new ProfileStatAttackerWeightSource(HeavyWeaponsProfile.class, "damageToLightArmorMultiplier", WeightClass.HEAVY));
         registerOffensive("HEAVY_ARMOR_DAMAGE_BONUS", new ProfileStatAttackerWeightSource(MartialArtsProfile.class, "damageToHeavyArmorMultiplier", WeightClass.WEIGHTLESS), new ProfileStatAttackerWeightSource(HeavyWeaponsProfile.class, "damageToHeavyArmorMultiplier", WeightClass.HEAVY), new ProfileStatAttackerWeightSource(LightWeaponsProfile.class, "damageToHeavyArmorMultiplier", WeightClass.LIGHT), new AttributeAttackerSource("HEAVY_ARMOR_DAMAGE"), new ProfileStatAttackerWeightSource(HeavyWeaponsProfile.class, "damageToHeavyArmorMultiplier", WeightClass.HEAVY));
         registerOffensive("FIRE_DAMAGE_BONUS", new AttributeAttackerSource("EXTRA_FIRE_DAMAGE").penalty("damage"), new ProfileStatAttackerSource(PowerProfile.class, "fireDamageBonus"), new PotionEffectAttackerSource("EXTRA_FIRE_DAMAGE"));
@@ -299,7 +303,7 @@ public class AccumulativeStatManager {
         register("SMITHING_FRACTION_QUALITY_CUSTOM9", new ProfileStatSource(SmithingProfile.class, "custom9CraftingSkillFractionBonus"));
         register("SMITHING_FRACTION_QUALITY_CUSTOM10", new ProfileStatSource(SmithingProfile.class, "custom10CraftingSkillFractionBonus"));
         register("SMITHING_FRACTION_QUALITY_OTHER", new ProfileStatSource(SmithingProfile.class, "otherCraftingSkillFractionBonus"));
-        register("SMITHING_EXP_GAIN_GENERAL", new PermissionStatSource("valhalla.exp.smithing"), new ProfileStatSource(SmithingProfile.class, "genericEXPMultiplier"), new GlobalBuffSource("smithing_experience"));
+        register("SMITHING_EXP_GAIN_GENERAL", new PermissionStatSource("valhalla.exp.smithing"), new ProfileStatSource(SmithingProfile.class, "genericEXPMultiplier"), new GlobalBuffSource("smithing_experience"), new AttributeSource("SMITHING_EXP_GAIN"));
         register("SMITHING_EXP_GAIN_WOOD", new ProfileStatSource(SmithingProfile.class, "woodEXPMultiplier"));
         register("SMITHING_EXP_GAIN_LEATHER", new ProfileStatSource(SmithingProfile.class, "leatherEXPMultiplier"));
         register("SMITHING_EXP_GAIN_STONE", new ProfileStatSource(SmithingProfile.class, "stoneEXPMultiplier"));
@@ -335,7 +339,7 @@ public class AccumulativeStatManager {
         register("BREWING_INGREDIENT_SAVE_CHANCE", new AttributeSource("BREWING_INGREDIENT_CONSUMPTION").penalty("attribute"), new ProfileStatSource(AlchemyProfile.class, "brewingIngredientSaveChance"), new GlobalBuffSource("brewing_ingredient_save_chance"), new PotionEffectSource("BREWING_INGREDIENT_CONSUMPTION", true));
         register("POTION_SAVE_CHANCE", new AttributeSource("POTION_CONSUMPTION").penalty("attribute"), new ProfileStatSource(AlchemyProfile.class, "potionSaveChance"), new GlobalBuffSource("potion_save_chance"), new PotionEffectSource("POTION_CONSUMPTION"));
         register("THROW_VELOCITY_BONUS", new AttributeSource("THROWING_VELOCITY").penalty("attribute"), new ProfileStatSource(AlchemyProfile.class, "throwVelocity"), new GlobalBuffSource("throw_velocity"), new PotionEffectSource("THROWING_VELOCITY"));
-        register("ALCHEMY_EXP_GAIN", new PermissionStatSource("valhalla.exp.alchemy"), new ProfileStatSource(AlchemyProfile.class, "alchemyEXPMultiplier"), new GlobalBuffSource("alchemy_experience"));
+        register("ALCHEMY_EXP_GAIN", new PermissionStatSource("valhalla.exp.alchemy"), new ProfileStatSource(AlchemyProfile.class, "alchemyEXPMultiplier"), new GlobalBuffSource("alchemy_experience"), new AttributeSource("ALCHEMY_EXP_GAIN"));
         register("SPLASH_INTENSITY_MINIMUM", new AttributeSource("SPLASH_INTENSITY_MINIMUM"), new PotionEffectSource("SPLASH_INTENSITY_MINIMUM"), new ProfileStatSource(AlchemyProfile.class, "splashIntensityMinimum"), new GlobalBuffSource("splash_intensity_minimum"));
         register("LINGERING_DURATION_MULTIPLIER", new AttributeSource("LINGERING_DURATION_MULTIPLIER"), new PotionEffectSource("LINGERING_DURATION_MULTIPLIER"), new ProfileStatSource(AlchemyProfile.class, "lingeringDurationMultiplier"), new GlobalBuffSource("lingering_duration"));
         register("LINGERING_RADIUS_MULTIPLIER", new AttributeSource("LINGERING_RADIUS_MULTIPLIER"), new PotionEffectSource("LINGERING_RADIUS_MULTIPLIER"), new ProfileStatSource(AlchemyProfile.class, "lingeringRadiusMultiplier"), new GlobalBuffSource("lingering_radius"));
@@ -349,44 +353,44 @@ public class AccumulativeStatManager {
         register("ENCHANTING_VANILLA_EXP_GAIN", new AttributeSource("VANILLA_EXP_GAIN"), new PotionEffectSource("VANILLA_EXP_GAIN"), new ProfileStatSource(EnchantingProfile.class, "essenceMultiplier"), new GlobalBuffSource("vanilla_exp_multiplier"));
         register("ENCHANTING_REFUND_CHANCE", new AttributeSource("ENCHANTING_REFUND_CHANCE"), new PotionEffectSource("ENCHANTING_REFUND_CHANCE"), new ProfileStatSource(EnchantingProfile.class, "essenceRefundChance"), new GlobalBuffSource("enchanting_exp_refund_chance"));
         register("ENCHANTING_REFUND_AMOUNT", new AttributeSource("ENCHANTING_REFUND_FRACTION"), new PotionEffectSource("ENCHANTING_REFUND_FRACTION"), new ProfileStatSource(EnchantingProfile.class, "essenceRefundFraction"), new GlobalBuffSource("enchanting_exp_refund_amount"));
-        register("ENCHANTING_EXP_GAIN", new PermissionStatSource("valhalla.exp.enchanting"), new ProfileStatSource(EnchantingProfile.class, "enchantingEXPMultiplier"), new GlobalBuffSource("enchanting_experience"));
+        register("ENCHANTING_EXP_GAIN", new PermissionStatSource("valhalla.exp.enchanting"), new ProfileStatSource(EnchantingProfile.class, "enchantingEXPMultiplier"), new GlobalBuffSource("enchanting_experience"), new AttributeSource("ENCHANTING_EXP_GAIN"));
 
         register("BUTCHERY_DROP_MULTIPLIER", new AttributeSource("BUTCHERY_DROPS"), new PotionEffectSource("BUTCHERY_DROPS"), new ProfileStatSource(FarmingProfile.class, "butcheryDrops"), new GlobalBuffSource("butchery_drop_multiplier"));
         register("FARMING_DROP_MULTIPLIER", new ProfileStatSource(FarmingProfile.class, "farmingDrops"), new AttributeSource("FARMING_DROPS"), new PotionEffectSource("FARMING_DROPS"), new GlobalBuffSource("farming_drop_multiplier"));
         register("BUTCHERY_LUCK", new ProfileStatSource(FarmingProfile.class, "butcheryLuck"), new AttributeSource("FARMING_RARE_DROPS"), new PotionEffectSource("FARMING_RARE_DROPS"), new GlobalBuffSource("butchery_luck"));
         register("FARMING_LUCK", new ProfileStatSource(FarmingProfile.class, "farmingLuck"), new AttributeSource("FARMING_RARE_DROPS"), new PotionEffectSource("FARMING_RARE_DROPS"), new GlobalBuffSource("farming_luck"));
-        register("FARMING_EXP_GAIN", new PermissionStatSource("valhalla.exp.farming"), new ProfileStatSource(FarmingProfile.class, "farmingEXPMultiplier"), new GlobalBuffSource("farming_experience"));
+        register("FARMING_EXP_GAIN", new PermissionStatSource("valhalla.exp.farming"), new ProfileStatSource(FarmingProfile.class, "farmingEXPMultiplier"), new GlobalBuffSource("farming_experience"), new AttributeSource("FARMING_EXP_GAIN"));
 
         register("MINING_DROP_MULTIPLIER", new ProfileStatSource(MiningProfile.class, "miningDrops"), new AttributeSource("MINING_DROPS"), new PotionEffectSource("MINING_DROPS"), new GlobalBuffSource("mining_drop_multiplier"));
         register("MINING_LUCK", new ProfileStatSource(MiningProfile.class, "miningLuck"), new AttributeSource("MINING_RARE_DROPS"), new PotionEffectSource("MINING_RARE_DROPS"), new GlobalBuffSource("mining_luck"));
         register("BLASTING_DROP_MULTIPLIER", new ProfileStatSource(MiningProfile.class, "blastingDrops"), new AttributeSource("MINING_DROPS"), new PotionEffectSource("MINING_DROPS"), new GlobalBuffSource("blasting_drop_multiplier"));
         register("BLASTING_LUCK", new ProfileStatSource(MiningProfile.class, "blastingLuck"), new AttributeSource("MINING_RARE_DROPS"), new PotionEffectSource("MINING_RARE_DROPS"), new GlobalBuffSource("blasting_luck"));
-        register("MINING_EXP_GAIN", new PermissionStatSource("valhalla.exp.mining"), new ProfileStatSource(MiningProfile.class, "miningEXPMultiplier"), new GlobalBuffSource("mining_experience"));
+        register("MINING_EXP_GAIN", new PermissionStatSource("valhalla.exp.mining"), new ProfileStatSource(MiningProfile.class, "miningEXPMultiplier"), new GlobalBuffSource("mining_experience"), new AttributeSource("MINING_EXP_GAIN"));
 
         register("DIGGING_DROP_MULTIPLIER", new ProfileStatSource(DiggingProfile.class, "diggingDrops"), new AttributeSource("DIGGING_DROPS"), new PotionEffectSource("DIGGING_DROPS"), new GlobalBuffSource("digging_drop_multiplier"));
         register("DIGGING_LUCK", new ProfileStatSource(DiggingProfile.class, "diggingLuck"), new AttributeSource("DIGGING_RARE_DROPS"), new PotionEffectSource("DIGGING_RARE_DROPS"), new GlobalBuffSource("digging_luck"));
         register("DIGGING_ARCHAEOLOGY_LUCK", new ProfileStatSource(DiggingProfile.class, "archaeologyLuck"), new AttributeSource("DIGGING_RARE_DROPS"), new PotionEffectSource("DIGGING_RARE_DROPS"), new GlobalBuffSource("archaeology_luck"));
-        register("DIGGING_EXP_GAIN", new PermissionStatSource("valhalla.exp.digging"), new ProfileStatSource(DiggingProfile.class, "diggingEXPMultiplier"), new GlobalBuffSource("digging_experience"));
+        register("DIGGING_EXP_GAIN", new PermissionStatSource("valhalla.exp.digging"), new ProfileStatSource(DiggingProfile.class, "diggingEXPMultiplier"), new GlobalBuffSource("digging_experience"), new AttributeSource("DIGGING_EXP_GAIN"));
 
         register("WOODCUTTING_DROP_MULTIPLIER", new ProfileStatSource(WoodcuttingProfile.class, "woodcuttingDrops"), new AttributeSource("WOODCUTTING_DROPS"), new PotionEffectSource("WOODCUTTING_DROPS"), new GlobalBuffSource("woodcutting_drop_multiplier"));
         register("WOODCUTTING_LUCK", new ProfileStatSource(WoodcuttingProfile.class, "woodcuttingLuck"), new AttributeSource("WOODCUTTING_RARE_DROPS"), new PotionEffectSource("WOODCUTTING_RARE_DROPS"), new GlobalBuffSource("woodcutting_luck"));
-        register("WOODCUTTING_EXP_GAIN", new PermissionStatSource("valhalla.exp.woodcutting"), new ProfileStatSource(WoodcuttingProfile.class, "woodcuttingEXPMultiplier"), new GlobalBuffSource("woodcutting_experience"));
+        register("WOODCUTTING_EXP_GAIN", new PermissionStatSource("valhalla.exp.woodcutting"), new ProfileStatSource(WoodcuttingProfile.class, "woodcuttingEXPMultiplier"), new GlobalBuffSource("woodcutting_experience"), new AttributeSource("WOODCUTTING_EXP_GAIN"));
 
-        register("FISHING_EXP_GAIN", new PermissionStatSource("valhalla.exp.fishing"), new ProfileStatSource(FishingProfile.class, "fishingEXPMultiplier"), new GlobalBuffSource("fishing_experience"));
+        register("FISHING_EXP_GAIN", new PermissionStatSource("valhalla.exp.fishing"), new ProfileStatSource(FishingProfile.class, "fishingEXPMultiplier"), new GlobalBuffSource("fishing_experience"), new AttributeSource("FISHING_EXP_GAIN"));
 
-        register("ARCHERY_EXP_GAIN", new PermissionStatSource("valhalla.exp.archery"), new ProfileStatSource(ArcheryProfile.class, "archeryEXPMultiplier"), new GlobalBuffSource("archery_experience"));
+        register("ARCHERY_EXP_GAIN", new PermissionStatSource("valhalla.exp.archery"), new ProfileStatSource(ArcheryProfile.class, "archeryEXPMultiplier"), new GlobalBuffSource("archery_experience"), new AttributeSource("ARCHERY_EXP_GAIN"));
 
-        register("LIGHT_ARMOR_EXP_GAIN", new PermissionStatSource("valhalla.exp.light_armor"), new ProfileStatSource(LightArmorProfile.class, "lightArmorEXPMultiplier"), new GlobalBuffSource("light_armor_experience"));
+        register("LIGHT_ARMOR_EXP_GAIN", new PermissionStatSource("valhalla.exp.light_armor"), new ProfileStatSource(LightArmorProfile.class, "lightArmorEXPMultiplier"), new GlobalBuffSource("light_armor_experience"), new AttributeSource("LIGHT_ARMOR_EXP_GAIN"));
 
-        register("HEAVY_ARMOR_EXP_GAIN", new PermissionStatSource("valhalla.exp.heavy_armor"), new ProfileStatSource(HeavyArmorProfile.class, "heavyArmorEXPMultiplier"), new GlobalBuffSource("heavy_armor_experience"));
+        register("HEAVY_ARMOR_EXP_GAIN", new PermissionStatSource("valhalla.exp.heavy_armor"), new ProfileStatSource(HeavyArmorProfile.class, "heavyArmorEXPMultiplier"), new GlobalBuffSource("heavy_armor_experience"), new AttributeSource("HEAVY_ARMOR_EXP_GAIN"));
 
-        register("LIGHT_WEAPONS_EXP_GAIN", new PermissionStatSource("valhalla.exp.light_weapons"), new ProfileStatSource(LightWeaponsProfile.class, "lightWeaponsEXPMultiplier"), new GlobalBuffSource("light_weapons_experience"));
+        register("LIGHT_WEAPONS_EXP_GAIN", new PermissionStatSource("valhalla.exp.light_weapons"), new ProfileStatSource(LightWeaponsProfile.class, "lightWeaponsEXPMultiplier"), new GlobalBuffSource("light_weapons_experience"), new AttributeSource("LIGHT_WEAPONS_EXP_GAIN"));
 
-        register("HEAVY_WEAPONS_EXP_GAIN", new PermissionStatSource("valhalla.exp.heavy_weapons"), new ProfileStatSource(HeavyWeaponsProfile.class, "heavyWeaponsEXPMultiplier"), new GlobalBuffSource("heavy_weapons_experience"));
+        register("HEAVY_WEAPONS_EXP_GAIN", new PermissionStatSource("valhalla.exp.heavy_weapons"), new ProfileStatSource(HeavyWeaponsProfile.class, "heavyWeaponsEXPMultiplier"), new GlobalBuffSource("heavy_weapons_experience"), new AttributeSource("HEAVY_WEAPONS_EXP_GAIN"));
 
-        register("MARTIAL_ARTS_EXP_GAIN", new PermissionStatSource("valhalla.exp.martial_arts"), new ProfileStatSource(MartialArtsProfile.class, "martialArtsEXPMultiplier"), new GlobalBuffSource("martial_arts_experience"));
+        register("MARTIAL_ARTS_EXP_GAIN", new PermissionStatSource("valhalla.exp.martial_arts"), new ProfileStatSource(MartialArtsProfile.class, "martialArtsEXPMultiplier"), new GlobalBuffSource("martial_arts_experience"), new AttributeSource("MARTIAL_ARTS_EXP_GAIN"));
 
-        register("TRADING_DISCOUNT", new ProfileStatSource(TradingProfile.class, "tradingDiscount"));
+        register("TRADING_DISCOUNT", new ProfileStatSource(TradingProfile.class, "tradingDiscount"), new AttributeSource("TRADING_DISCOUNT", true));
         register("TRAINING_DISCOUNT", new ProfileStatSource(TradingProfile.class, "trainingDiscount"));
         register("SERVICE_DISCOUNT", new ProfileStatSource(TradingProfile.class, "serviceDiscount"));
         register("TRADING_LUCK", new ProfileStatSource(TradingProfile.class, "tradingLuck"));
@@ -402,7 +406,7 @@ public class AccumulativeStatManager {
         register("TRADING_MERCHANT_EXPERIENCE_MULTIPLIER", new ProfileStatSource(TradingProfile.class, "merchantExperienceMultiplier"));
         register("TRADING_GIFT_CHANCE", new ProfileStatSource(TradingProfile.class, "tradeGiftChance"), new TradingRenownGiftChanceSource(), new TradingReputationGiftChanceSource());
         register("TRADING_GIFT_COOLDOWN", new ProfileStatSource(TradingProfile.class, "tradeGiftCooldown"));
-        register("TRADING_EXP_GAIN", new ProfileStatSource(TradingProfile.class, "tradingEXPMultiplier"), new GlobalBuffSource("trading_experience"));
+        register("TRADING_EXP_GAIN", new ProfileStatSource(TradingProfile.class, "tradingEXPMultiplier"), new GlobalBuffSource("trading_experience"), new AttributeSource("TRADING_EXP_GAIN"));
     }
 
     /**

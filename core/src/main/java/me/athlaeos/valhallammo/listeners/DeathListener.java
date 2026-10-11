@@ -34,6 +34,37 @@ public class DeathListener implements Listener {
         killedStatusNoDamageType = TranslationManager.getTranslation("death_status_killer_no_damage_type");
     }
 
+    /**
+     * Lets players keep a fraction of their experience on death, defined by the DEATH_EXP_RETENTION stat. The experience
+     * they'd drop is reduced by the same fraction, so the experience kept and dropped never exceeds what they had.<br>
+     * Does nothing if the player already keeps their levels (keepInventory, or another plugin deciding so)
+     */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onPlayerDeathExpRetention(PlayerDeathEvent e){
+        if (e.getKeepLevel() || ValhallaMMO.isWorldBlacklisted(e.getEntity().getWorld().getName())) return;
+        double retention = Math.max(0, Math.min(1, AccumulativeStatManager.getCachedStats("DEATH_EXP_RETENTION", e.getEntity(), 10000, true)));
+        if (retention <= 0) return;
+        int kept = (int) Math.floor(totalExperience(e.getEntity().getLevel(), e.getEntity().getExp()) * retention);
+        if (kept <= 0) return;
+        // the player respawns at level 0 and is then granted the experience they kept
+        e.setNewLevel(0);
+        e.setNewTotalExp(0);
+        e.setNewExp(kept);
+        e.setDroppedExp((int) Math.floor(e.getDroppedExp() * (1 - retention)));
+    }
+
+    /**
+     * @return the total amount of experience points needed to get to the given level and progress to the next level
+     */
+    private static int totalExperience(int level, float progress){
+        double total;
+        if (level <= 16) total = (level * level) + (6D * level);
+        else if (level <= 31) total = (2.5 * level * level) - (40.5 * level) + 360;
+        else total = (4.5 * level * level) - (162.5 * level) + 2220;
+        int toNextLevel = level <= 15 ? (2 * level) + 7 : level <= 30 ? (5 * level) - 38 : (9 * level) - 158;
+        return (int) Math.round(total + (Math.max(0, Math.min(1, progress)) * toNextLevel));
+    }
+
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerDeath(PlayerDeathEvent e){
         PotionEffectRegistry.removePotionEffects(e.getEntity(), EntityPotionEffectEvent.Cause.DEATH, eff -> eff.getWrapper().isRemovable());
