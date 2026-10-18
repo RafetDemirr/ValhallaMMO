@@ -9,7 +9,7 @@ binary envanter yedekleri) esinlenerek yazıldı.
 ```bash
 cd FoolDuels
 mvn package
-# target/FoolDuels-1.0.0.jar
+# target/FoolDuels-1.2.0.jar
 ```
 
 İsteğe bağlı bağımlılıklar: **Vault** (+ EssentialsX gibi bir ekonomi) bahis ve turnuva ücreti için,
@@ -69,8 +69,39 @@ mvn package
 - **Arenaya geri dönüş yok:** `/back`, `/home`, `/warp`, `/tpa` ve konsol `tp` ile maçta olmayan biri arena
   bölgesine ışınlanamaz; arena içinde `/sethome`, `/setwarp` vb. (`protection.blocked-commands-in-arena`)
   kullanılamaz; arenadaki yatak/spawn noktası yok sayılır.
-- **WorldGuard:** Arena bölgesinde `pvp deny` olsa bile düellodaki rakipler birbirine vurabilir
-  (`protection.force-allow-pvp`). Maç dışındaki PvP kuralları değişmez.
+- **WorldGuard:** Arena bölgesinde `pvp deny` olsa bile düellodaki rakipler birbirine vurabilir ve
+  knockback yer (`protection.force-allow-pvp`). Maç dışındaki PvP kuralları değişmez.
+- **İstek spamı:** Aynı oyuncuya tekrar istek için `duel.request-cooldown` (15 sn), reddedildikten sonra
+  `duel.deny-cooldown` (60 sn) beklenir. Kabul edilen istek beklemeyi sıfırlar (rövanş hemen atılabilir).
+  `foolduels.bypass` bu süreyi atlar.
+- **Bahis yazma:** Menüden bahis miktarı sohbete yazılınca mesaj kimseye gitmez (EssentialsXChat dahil).
+
+## Menü
+
+`/duel <oyuncu>`: iki oyuncunun ELO/galibiyet bilgisi, bahis (±10/100/1000 veya altın bloğa tıklayıp
+sohbete yaz; vergi ve net kazanç gösterilir), kit seçimi (içerik önizlemeli), boştaki arenalar ve aktif
+maçlar, sıradaki oyuncu sayıları (tıklayınca seçili kitle sıraya girer) ve kurallar.
+
+## Bahis vergisi
+
+`bet.tax-percent` varsayılan vergidir. Yetkiye göre daha düşük oran (en düşüğü geçerli):
+
+```yaml
+bet:
+  tax-percent: 5
+  tax-permissions:
+    vergisiz:
+      permission: foolduels.tax.bypass   # kazanan vergi ödemez
+      tax: 0
+    vip:
+      permission: foolduels.tax.vip
+      tax: 2
+```
+
+`/lp user <oyuncu> permission set foolduels.tax.bypass true`
+
+Eski bir config.yml ile güncellediğinde yeni ayarlar ve mesajlar dosyaya otomatik eklenir; senin
+değerlerin ve presetlerin değişmez.
 
 ## Turnuva presetleri
 

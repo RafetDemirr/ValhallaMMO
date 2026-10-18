@@ -365,12 +365,14 @@ public final class MatchManager {
             List<UUID> winners = m.team(winner);
             List<UUID> losers = m.team(1 - winner);
 
-            double share = 0;
+            Map<UUID, Double> prizes = new HashMap<>();
             if (m.bet > 0) {
-                double pot = m.bet * all.size();
-                double tax = pot * plugin.getConfig().getDouble("bet.tax-percent", 0) / 100.0;
-                share = (pot - tax) / winners.size();
-                for (UUID w : winners) plugin.economy().deposit(Bukkit.getOfflinePlayer(w), share);
+                double gross = m.bet * all.size() / winners.size();
+                for (UUID w : winners) {
+                    double net = gross * (1 - taxPercent(Bukkit.getPlayer(w)) / 100.0);
+                    prizes.put(w, net);
+                    plugin.economy().deposit(Bukkit.getOfflinePlayer(w), net);
+                }
                 for (UUID u : all) plugin.store().removeEscrow(u, m.bet);
             }
 
@@ -379,10 +381,11 @@ public final class MatchManager {
                     : (m.bet <= 0 || plugin.getConfig().getBoolean("elo.count-bet-duels", true)));
             int change = plugin.stats().record(names(m, winners), names(m, losers), applyElo);
 
-            String prize = share > 0 ? plugin.economy().format(share) : "-";
             for (UUID w : winners) {
                 Player p = Bukkit.getPlayer(w);
-                if (p != null) Msg.send(p, "match-win", "prize", prize, "elo", plugin.stats().elo(w), "delta", change);
+                Double prize = prizes.get(w);
+                if (p != null) Msg.send(p, "match-win", "prize", prize == null ? "-" : plugin.economy().format(prize),
+                        "elo", plugin.stats().elo(w), "delta", change);
             }
             for (UUID l : losers) {
                 Player p = Bukkit.getPlayer(l);
@@ -463,6 +466,22 @@ public final class MatchManager {
         Map<UUID, String> out = new LinkedHashMap<>();
         for (UUID id : ids) out.put(id, m.name(id));
         return out;
+    }
+
+    /**
+     * Bet tax for a winner. bet.tax-percent by default; bet.tax-permissions can lower it per permission
+     * (the lowest matching rate wins, e.g. foolduels.tax.bypass: 0).
+     */
+    public double taxPercent(Player p) {
+        double tax = plugin.getConfig().getDouble("bet.tax-percent", 0);
+        var section = plugin.getConfig().getConfigurationSection("bet.tax-permissions");
+        if (p == null || section == null) return tax;
+        for (String perm : section.getKeys(false)) {
+            String node = section.getString(perm + ".permission", perm);
+            double rate = section.isConfigurationSection(perm) ? section.getDouble(perm + ".tax", tax) : section.getDouble(perm, tax);
+            if (p.hasPermission(node)) tax = Math.min(tax, rate);
+        }
+        return Math.max(0, tax);
     }
 
     public String kitName(KitManager.Kit kit) {

@@ -49,8 +49,7 @@ public final class FoolDuels extends JavaPlugin {
     @Override
     public void onEnable() {
         saveDefaultConfig();
-        getConfig().options().copyDefaults(true);
-        saveConfig();
+        upgradeConfig();
         Msg.load(getConfig());
 
         economy = new EconomyHook();
@@ -127,8 +126,33 @@ public final class FoolDuels extends JavaPlugin {
         store.clearEscrowFile();
     }
 
+    /**
+     * Adds settings and messages from newer versions to an existing config.yml, keeping the
+     * owner's values and comments. Presets and tax permissions are left alone once they exist,
+     * so deleted entries don't come back.
+     */
+    private void upgradeConfig() {
+        var cfg = getConfig();
+        var defaults = cfg.getDefaults();
+        if (defaults == null) return;
+        boolean changed = false;
+        for (String key : defaults.getKeys(true)) {
+            if (defaults.isConfigurationSection(key) || cfg.contains(key, true)) continue;
+            if (ownedSection(cfg, key, "tournament.presets") || ownedSection(cfg, key, "bet.tax-permissions")) continue;
+            cfg.set(key, defaults.get(key));
+            cfg.setComments(key, defaults.getComments(key));
+            changed = true;
+        }
+        if (changed) saveConfig();
+    }
+
+    private static boolean ownedSection(org.bukkit.configuration.Configuration cfg, String key, String section) {
+        return key.startsWith(section + ".") && cfg.contains(section, true);
+    }
+
     public void reloadAll() {
         reloadConfig();
+        upgradeConfig();
         Msg.load(getConfig());
         store.setMaxBackups(getConfig().getInt("backups.max-per-player", 10));
         stats.configure(getConfig().getInt("elo.default", 1000), getConfig().getInt("elo.k-factor", 32));

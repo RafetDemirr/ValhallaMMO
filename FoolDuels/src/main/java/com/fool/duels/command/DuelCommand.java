@@ -103,6 +103,11 @@ public final class DuelCommand implements TabExecutor {
                     Msg.send(p, "in-match");
                     return true;
                 }
+                long left = plugin.requests().cooldownLeft(p, target);
+                if (left > 0) {
+                    Msg.send(p, "request-cooldown", "player", target.getName(), "seconds", left);
+                    return true;
+                }
                 if (!plugin.requests().validate(p, target, 0, p)) return true;
                 plugin.menus().openDuel(p, target);
             }

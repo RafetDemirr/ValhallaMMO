@@ -6,6 +6,10 @@
 duel:
   # Düello isteğinin geçerlilik süresi (saniye)
   request-timeout: 60
+  # Aynı oyuncuya tekrar istek atmadan önce beklenecek süre (saniye)
+  request-cooldown: 15
+  # İstek reddedilince aynı oyuncuya tekrar istek atmadan önce beklenecek süre (saniye)
+  deny-cooldown: 60
   # Maç başlamadan önceki geri sayım (saniye). Bu sürede oyuncular hareket edemez ve hasar alamaz.
   countdown: 5
   # Bir maçın en uzun süresi (saniye). Süre dolunca normal düelloda berabere biter ve bahisler iade edilir.
@@ -34,6 +38,15 @@ bet:
   steps: [10, 100, 1000]
   # Kazananların ödülünden kesilecek vergi (yüzde)
   tax-percent: 5
+  # Yetkiye göre vergi oranı. Oyuncunun sahip olduğu yetkilerden en düşük oran uygulanır.
+  # 0 = vergi alınmaz. (Yetkiyi LuckPerms vb. ile ver: /lp user <oyuncu> permission set foolduels.tax.bypass)
+  tax-permissions:
+    vergisiz:
+      permission: foolduels.tax.bypass
+      tax: 0
+    vip:
+      permission: foolduels.tax.vip
+      tax: 2
 
 party:
   max-size: 4
@@ -174,6 +187,7 @@ messages:
   request-sent: "<green><white>{player}</white> adlı oyuncuya düello isteği gönderildi."
   request-received: "<gold><white>{player}</white> sana <yellow>{mode}</yellow> düello isteği gönderdi! <gray>Bahis: <yellow>{bet}</yellow> · Kit: <yellow>{kit}</yellow></gray> <click:run_command:'/duel kabul {player}'><hover:show_text:'<green>Kabul et'><green><bold>[KABUL]</bold></green></hover></click> <click:run_command:'/duel red {player}'><hover:show_text:'<red>Reddet'><red><bold>[RED]</bold></red></hover></click>"
   request-none: "<red>Bekleyen bir düello isteğin yok."
+  request-cooldown: "<red><white>{player}</white> adlı oyuncuya tekrar istek atmak için <white>{seconds}</white> saniye bekle."
   request-expired: "<yellow><white>{player}</white> ile olan düello isteğinin süresi doldu."
   request-denied: "<red><white>{player}</white> düello isteğini reddetti."
   request-denied-self: "<yellow>Düello isteğini reddettin."

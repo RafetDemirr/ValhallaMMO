@@ -136,12 +136,28 @@ public final class MatchListener implements Listener {
         if (!e.isCancelled() || matches.isEmpty() || !(e.getEntity() instanceof Player victim)) return;
         if (!plugin.getConfig().getBoolean("protection.force-allow-pvp", true)) return;
         Player attacker = attacker(e.getDamager());
-        if (attacker == null || attacker.equals(victim)) return;
+        if (attacker != null && areOpponentsFighting(victim, attacker)) e.setCancelled(false);
+    }
+
+    /**
+     * WorldGuard (pvp deny) also cancels the knockback of the hit separately, so without this
+     * duelists take damage but never get pushed back. Re-allow knockback between opponents too.
+     */
+    @EventHandler(priority = EventPriority.HIGHEST)
+    @SuppressWarnings("deprecation")
+    public void onKnockbackForceAllow(com.destroystokyo.paper.event.entity.EntityKnockbackByEntityEvent e) {
+        if (!e.isCancelled() || matches.isEmpty() || !(e.getEntity() instanceof Player victim)) return;
+        if (!plugin.getConfig().getBoolean("protection.force-allow-pvp", true)) return;
+        Player attacker = attacker(e.getHitBy());
+        if (attacker != null && areOpponentsFighting(victim, attacker)) e.setCancelled(false);
+    }
+
+    private boolean areOpponentsFighting(Player victim, Player attacker) {
+        if (attacker.equals(victim)) return false;
         Match m = matches.get(victim.getUniqueId());
-        if (m == null || m.state() != Match.State.FIGHT || matches.get(attacker.getUniqueId()) != m) return;
-        if (!m.isAlive(victim.getUniqueId()) || !m.isAlive(attacker.getUniqueId())) return;
-        if (m.teamOf(victim.getUniqueId()) == m.teamOf(attacker.getUniqueId())) return;
-        e.setCancelled(false);
+        if (m == null || m.state() != Match.State.FIGHT || matches.get(attacker.getUniqueId()) != m) return false;
+        if (!m.isAlive(victim.getUniqueId()) || !m.isAlive(attacker.getUniqueId())) return false;
+        return m.teamOf(victim.getUniqueId()) != m.teamOf(attacker.getUniqueId());
     }
 
     private static Player attacker(Entity damager) {

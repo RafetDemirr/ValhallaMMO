@@ -35,6 +35,12 @@ permissions:
     default: op
     children:
       foolduels.bypass: true
+  foolduels.tax.bypass:
+    description: Kazandığı bahisten vergi kesilmez
+    default: false
+  foolduels.tax.vip:
+    description: Bahis vergisi bet.tax-permissions'taki orana düşer
+    default: false
   foolduels.bypass:
     description: Maç sırasında komut engeline ve arena korumasına takılmama
     default: op

@@ -25,6 +25,8 @@ public final class RequestManager {
     /** target -> (sender -> request) */
     private final Map<UUID, Map<UUID, Request>> incoming = new HashMap<>();
     private final Set<UUID> toggledOff = new HashSet<>();
+    /** "sender:target" -> time until another request is allowed */
+    private final Map<String, Long> cooldowns = new HashMap<>();
 
     public RequestManager(FoolDuels plugin) {
         this.plugin = plugin;
@@ -100,7 +102,29 @@ public final class RequestManager {
         return true;
     }
 
+    /** Seconds left before sender may send target another request, 0 if allowed. */
+    public long cooldownLeft(Player sender, Player target) {
+        if (sender.hasPermission("foolduels.bypass")) return 0;
+        Long until = cooldowns.get(sender.getUniqueId() + ":" + target.getUniqueId());
+        if (until == null) return 0;
+        long left = (until - System.currentTimeMillis() + 999) / 1000;
+        return Math.max(0, left);
+    }
+
+    private void cooldown(UUID sender, UUID target, String path, long def) {
+        long seconds = plugin.getConfig().getLong(path, def);
+        if (seconds <= 0) return;
+        String key = sender + ":" + target;
+        long until = System.currentTimeMillis() + seconds * 1000L;
+        cooldowns.merge(key, until, Math::max);
+    }
+
     public void send(Player sender, Player target, double bet, String kitName) {
+        long left = cooldownLeft(sender, target);
+        if (left > 0) {
+            Msg.send(sender, "request-cooldown", "player", target.getName(), "seconds", left);
+            return;
+        }
         if (toggledOff.contains(target.getUniqueId())) {
             Msg.send(sender, "target-toggled", "player", target.getName());
             return;
@@ -114,6 +138,7 @@ public final class RequestManager {
         String mode = a.size() + "v" + b.size();
         String betText = bet > 0 ? plugin.economy().format(bet) : "-";
         String kitText = plugin.matches().kitName(plugin.kits().get(kitName));
+        cooldown(sender.getUniqueId(), target.getUniqueId(), "duel.request-cooldown", 15);
         Msg.send(sender, "request-sent", "player", target.getName());
         Msg.send(target, "request-received", "player", sender.getName(), "mode", mode, "bet", betText, "kit", kitText);
     }
@@ -126,6 +151,8 @@ public final class RequestManager {
             return;
         }
         incoming.get(target.getUniqueId()).remove(r.sender());
+        // An accepted request is not spam: allow a rematch right away.
+        cooldowns.remove(r.sender() + ":" + target.getUniqueId());
         Player sender = Bukkit.getPlayer(r.sender());
         if (sender == null) {
             Msg.send(target, "request-none");
@@ -152,6 +179,7 @@ public final class RequestManager {
             return;
         }
         incoming.get(target.getUniqueId()).remove(r.sender());
+        cooldown(r.sender(), target.getUniqueId(), "duel.deny-cooldown", 60);
         Msg.send(target, "request-denied-self");
         Player sender = Bukkit.getPlayer(r.sender());
         if (sender != null) Msg.send(sender, "request-denied", "player", target.getName());
@@ -191,6 +219,7 @@ public final class RequestManager {
 
     private void expire() {
         long now = System.currentTimeMillis();
+        cooldowns.values().removeIf(until -> until < now);
         for (Iterator<Map.Entry<UUID, Map<UUID, Request>>> it = incoming.entrySet().iterator(); it.hasNext(); ) {
             Map.Entry<UUID, Map<UUID, Request>> e = it.next();
             e.getValue().values().removeIf(r -> {
