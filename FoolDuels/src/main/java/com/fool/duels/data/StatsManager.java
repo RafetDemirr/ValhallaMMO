@@ -127,6 +127,30 @@ public final class StatsManager {
         return sum / ids.size();
     }
 
+    private List<Map.Entry<UUID, Stats>> cachedTop = List.of();
+    private final Map<UUID, Integer> cachedRank = new HashMap<>();
+    private long cachedAt;
+
+    /** Full ranking, recomputed at most every 10 seconds (placeholders are polled a lot). */
+    public List<Map.Entry<UUID, Stats>> topCached() {
+        long now = System.currentTimeMillis();
+        if (now - cachedAt > 10_000) {
+            cachedAt = now;
+            List<Map.Entry<UUID, Stats>> list = new ArrayList<>(stats.entrySet());
+            list.sort(Comparator.comparingInt((Map.Entry<UUID, Stats> e) -> e.getValue().elo).reversed());
+            cachedTop = list;
+            cachedRank.clear();
+            for (int i = 0; i < list.size(); i++) cachedRank.put(list.get(i).getKey(), i + 1);
+        }
+        return cachedTop;
+    }
+
+    /** 1-based rank, 0 if unranked. */
+    public int rank(UUID id) {
+        topCached();
+        return cachedRank.getOrDefault(id, 0);
+    }
+
     public List<Map.Entry<UUID, Stats>> top(int limit) {
         List<Map.Entry<UUID, Stats>> list = new ArrayList<>(stats.entrySet());
         list.sort(Comparator.comparingInt((Map.Entry<UUID, Stats> e) -> e.getValue().elo).reversed());

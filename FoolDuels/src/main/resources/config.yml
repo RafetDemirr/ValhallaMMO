@@ -48,12 +48,71 @@ elo:
   # Turnuva maçları ELO'yu etkilesin mi
   count-tournament: true
 
+queue:
+  # /duel sira <kit|kendi> - ELO'ya göre eşleşen 1v1 sıra sistemi
+  enabled: true
+  # Başlangıçta kabul edilen en fazla ELO farkı
+  elo-range: 100
+  # Beklenen her saniye için aralık bu kadar genişler
+  elo-range-growth-per-second: 10
+  max-elo-range: 1000
+
 tournament:
-  # Kazanma payları (yüzde). Birinci, ikinci, ...
+  # Kazanma payları (yüzde) - para havuzu için. Birinci, ikinci, üçüncü(ler)
   prizes: [70, 30]
   # Ödül havuzundan kesilecek vergi (yüzde)
   tax-percent: 0
   min-players: 2
+  # Turnuva maçlarındaki geri sayım (izleyiciler bu sürede bahis yapar)
+  countdown: 15
+  # Turnuva başlayınca kayıtlı oyuncuları lobiye ışınla (maç aralarında lobide beklerler)
+  teleport-to-lobby: true
+
+  # Preset kullanılmadan açılan turnuvaların ödül komutları.
+  # Konsoldan çalışır. %player% = oyuncu adı, %uuid%, %place% = derece.
+  # Oyuncu çevrimdışıysa komut kaydedilir ve oyuna girince çalışır.
+  rewards:
+    first: []
+    second: []
+    third: []
+    participation: []
+
+  # Hazır turnuvalar: /turnuva olustur <preset>
+  presets:
+    haftasonu:
+      display-name: "<gold><bold>Haftasonu Turnuvası"
+      fee: 0
+      # kit adı ya da "kendi"
+      kit: kendi
+      # para havuzu payları (fee > 0 ise)
+      prizes: [70, 30]
+      # Kayıt açılınca duyurulacak satırlar
+      announce:
+        - "<yellow>1.</yellow> <white>Efsanevi Anahtar x3"
+        - "<yellow>2.</yellow> <white>Efsanevi Anahtar x2"
+        - "<yellow>3.</yellow> <white>Efsanevi Anahtar x1"
+        - "<gray>Katılan herkese: <white>Normal Anahtar x1"
+      rewards:
+        # 1. (şampiyon)
+        first:
+          - "crates key give %player% efsanevi 3"
+        # 2. (finalde kaybeden)
+        second:
+          - "crates key give %player% efsanevi 2"
+        # 3. (yarı finalde kaybedenler; 4 kişiden fazla turnuvada 2 kişi)
+        third:
+          - "crates key give %player% efsanevi 1"
+        # Genel giriş ödülü - kayıt olan herkes
+        participation:
+          - "crates key give %player% normal 1"
+
+  # İzleyici bahisi: turnuva maçlarının geri sayımında /turnuva bahis <oyuncu> <miktar>
+  # Kazanan tarafa bahis yapanlar havuzu yatırdıkları oranda paylaşır.
+  spectator-bets:
+    enabled: true
+    min: 10
+    max: 100000
+    tax-percent: 5
 
 backups:
   # Oyuncu başına saklanacak en fazla yedek sayısı
@@ -73,6 +132,18 @@ command-whitelist:
   - reply
 
 protection:
+  # WorldGuard pvp deny vb. olsa bile düellodaki rakipler birbirine vurabilsin
+  force-allow-pvp: true
+  # /back, /home, /warp, /tpa vb. ile arena bölgesine ışınlanmayı engelle (maçta olmayanlar için)
+  block-teleport-into-arena: true
+  # Arena bölgesinin içinde kullanılamayacak komutlar (maçta olmayanlar için)
+  blocked-commands-in-arena:
+    - sethome
+    - createhome
+    - setwarp
+    - createwarp
+    - setspawn
+    - setjail
   # Arena bölgesinde (pos1-pos2) blok kırma/koyma engeli
   block-changes: true
   # Maçta olmayan oyuncuların aktif arenaya girmesini engelle
@@ -125,6 +196,8 @@ messages:
   container-blocked: "<red>Maç sırasında bunu açamazsın."
   drop-blocked: "<red>Kit modunda eşya atamazsın."
   arena-protected: "<red>Bu arena korunuyor."
+  arena-teleport-blocked: "<red>Arenaya ışınlanamazsın."
+  arena-command-blocked: "<red>Bu komutu arenada kullanamazsın."
   restored: "<green>Envanterin ve durumun geri yüklendi."
   elo-info: "<gold><white>{player}</white> · ELO: <yellow>{elo}</yellow> · Galibiyet: <green>{wins}</green> · Mağlubiyet: <red>{losses}</red>"
   elo-top-header: "<gold><bold>ELO Sıralaması"
@@ -138,8 +211,24 @@ messages:
     - "<yellow>/duel toggle</yellow> <gray>- İstekleri açar/kapatır"
     - "<yellow>/duel elo [oyuncu]</yellow> <gray>- ELO bilgisi"
     - "<yellow>/duel top</yellow> <gray>- ELO sıralaması"
+    - "<yellow>/duel sira <kit|kendi></yellow> <gray>- Dereceli sıraya gir"
+    - "<yellow>/duel izle</yellow> <gray>- İzleme/bekleme lobisine git"
+    - "<yellow>/duel ayril</yellow> <gray>- Sıradan/lobiden çık"
     - "<yellow>/parti</yellow> <gray>- Parti (2v2, 3v3...) komutları"
     - "<yellow>/turnuva</yellow> <gray>- Turnuva komutları"
+  queue:
+    disabled: "<red>Sıra sistemi kapalı."
+    unknown: "<red>Böyle bir sıra yok: <white>{queue}"
+    in-party: "<red>Partideyken sıraya giremezsin, parti düellosu için lider /duel atsın."
+    joined: "<green><white>{queue}</white> sırasına girdin. <gray>Sırada: <white>{count}</white> · Çıkmak için <white>/duel ayril"
+    left: "<yellow>Sıradan çıktın."
+    not-in-queue: "<red>Sırada değilsin."
+    list: "<gold>Sıralar: <white>{queues}</white> <gray>· /duel sira <ad>"
+  lobby:
+    not-set: "<red>Lobi ayarlanmamış."
+    joined: "<green>Lobiye geldin. Çıkmak için <white>/duel ayril"
+    left: "<yellow>Lobiden/sıradan çıktın."
+    not-in-lobby: "<red>Lobide ya da sırada değilsin."
   party:
     help:
       - "<gold><bold>Parti Komutları"
@@ -167,14 +256,16 @@ messages:
       - "<yellow>/turnuva katil</yellow> <gray>- Açık turnuvaya kayıt olur"
       - "<yellow>/turnuva ayril</yellow> <gray>- Kaydı iptal eder (başlamadan önce ücret iade edilir)"
       - "<yellow>/turnuva bilgi</yellow> <gray>- Turnuva durumunu gösterir"
+      - "<yellow>/turnuva bahis <oyuncu> <miktar></yellow> <gray>- Maç başlamadan önce bahis yap"
     help-admin:
+      - "<yellow>/turnuva olustur <preset></yellow> <gray>- Configdeki hazır turnuvayı açar"
       - "<yellow>/turnuva olustur <ücret> <kit|kendi></yellow> <gray>- Kayıtları açar"
       - "<yellow>/turnuva baslat</yellow> <gray>- Turnuvayı başlatır"
       - "<yellow>/turnuva iptal</yellow> <gray>- Turnuvayı iptal eder, ücretleri iade eder"
       - "<yellow>/turnuva oduleekle <miktar></yellow> <gray>- Ödül havuzuna para ekler"
     none: "<red>Şu an açık bir turnuva yok."
     already-exists: "<red>Zaten açık bir turnuva var."
-    opened: "<gold><bold>TURNUVA KAYITLARI AÇILDI!</bold></gold> <gray>Ücret: <yellow>{fee}</yellow> · Kit: <yellow>{kit}</yellow></gray> <click:run_command:'/turnuva katil'><hover:show_text:'<green>Kayıt ol'><green><bold>[KATIL]</bold></green></hover></click>"
+    opened: "<gold><bold>TURNUVA KAYITLARI AÇILDI!</bold></gold> {name} <gray>Ücret: <yellow>{fee}</yellow> · Kit: <yellow>{kit}</yellow></gray> <click:run_command:'/turnuva katil'><hover:show_text:'<green>Kayıt ol'><green><bold>[KATIL]</bold></green></hover></click>"
     joined: "<green>Turnuvaya kayıt oldun. <gray>Kayıtlı oyuncu: <white>{count}</white>"
     joined-broadcast: "<gray><white>{player}</white> turnuvaya katıldı. (<white>{count}</white> kişi · Havuz: <yellow>{pot}</yellow>)"
     already-joined: "<red>Zaten turnuvaya kayıtlısın."
@@ -189,7 +280,18 @@ messages:
     match: "<gray>Turnuva maçı: <white>{a}</white> <red>vs</red> <white>{b}</white>"
     match-result: "<gray>Turnuva: <green>{winner}</green> kazandı, <red>{loser}</red> elendi."
     forfeit-offline: "<gray><white>{player}</white> çevrimdışı olduğu için hükmen elendi."
-    winner: "<gold><bold>TURNUVA BİTTİ!</bold></gold> <yellow>1. <white>{first}</white> ({prize1})</yellow> <gray>· 2. <white>{second}</white> ({prize2})"
+    winner: "<gold><bold>TURNUVA BİTTİ!</bold></gold> <yellow>1. <white>{first}</white> ({prize1})</yellow> <gray>· 2. <white>{second}</white> ({prize2}) · 3. <white>{third}</white>"
+    no-preset: "<red>Böyle bir turnuva preseti yok: <white>{preset}"
+    bet-open: "<gold>Bahisler açık ({seconds} sn): <white>{a}</white> <red>vs</red> <white>{b}</white> <click:suggest_command:'/turnuva bahis {a} '><green>[{a}]</green></click> <click:suggest_command:'/turnuva bahis {b} '><aqua>[{b}]</aqua></click>"
+    bet-closed: "<gray>Bahisler kapandı: <white>{a}</white> (<yellow>{pa}</yellow>) vs <white>{b}</white> (<yellow>{pb}</yellow>)"
+    bet-no-match: "<red><white>{player}</white> için açık bahis yok (sadece maç başlamadan önce)."
+    bet-participant: "<red>Turnuva oyuncuları bahis yapamaz."
+    bet-other-side: "<red>Bu maçta diğer tarafa zaten bahis yaptın."
+    bet-placed: "<green><white>{player}</white> için <yellow>{amount}</yellow> bahis yaptın."
+    bet-won: "<green>Bahsi kazandın! <yellow>+{amount}"
+    bet-lost: "<red>Bahsi kaybettin (<yellow>{amount}</yellow>)."
+    bet-refunded: "<yellow>Bahsin iade edildi: {amount}"
+    bet-usage: "<red>Kullanım: /turnuva bahis <oyuncu> <miktar>"
     cancelled: "<red>Turnuva iptal edildi. Kayıt ücretleri iade edildi."
     info: "<gold>Turnuva · Durum: <yellow>{state}</yellow> · Oyuncu: <white>{count}</white> · Ücret: <yellow>{fee}</yellow> · Havuz: <yellow>{pot}</yellow> · Kit: <yellow>{kit}</yellow>"
     prize-added: "<green>Ödül havuzuna <yellow>{amount}</yellow> eklendi."

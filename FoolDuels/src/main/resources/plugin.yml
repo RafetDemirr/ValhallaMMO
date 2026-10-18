@@ -3,7 +3,7 @@ version: ${project.version}
 main: com.fool.duels.FoolDuels
 api-version: '1.21'
 description: Bahisli düello, parti (2v2, 3v3...), turnuva ve ELO sistemi.
-softdepend: [Vault, CombatLogX]
+softdepend: [Vault, CombatLogX, PlaceholderAPI]
 
 commands:
   duel:

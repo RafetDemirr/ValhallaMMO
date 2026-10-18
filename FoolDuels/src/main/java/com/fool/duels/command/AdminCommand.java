@@ -47,6 +47,7 @@ public final class AdminCommand implements TabExecutor {
                 "<yellow>/duelyonet kit sil <ad> <gray>| <yellow>liste <gray>| <yellow>al <ad>",
                 "<yellow>/duelyonet yedek <oyuncu> <gray>- düello öncesi yedekleri listeler",
                 "<yellow>/duelyonet geriyukle <oyuncu> <no> <gray>- yedeği geri yükler (envanter, XP, can...)",
+                "<yellow>/duelyonet lobi <gray>- bekleme/izleme lobisini bulunduğun yere ayarlar",
                 "<yellow>/duelyonet elo <oyuncu> <değer>",
                 "<yellow>/duelyonet reload")) s.sendMessage(Msg.parse(line));
     }
@@ -74,6 +75,14 @@ public final class AdminCommand implements TabExecutor {
                 } catch (NumberFormatException e) {
                     err(sender, "Geçersiz sayı.");
                 }
+            }
+            case "lobi" -> {
+                if (!(sender instanceof Player p)) {
+                    Msg.send(sender, "player-only");
+                    return true;
+                }
+                plugin.lobby().setLobby(p.getLocation());
+                ok(sender, "Lobi ayarlandı. Arena koruma bölgesinin (pos1-pos2) dışında olmasına dikkat et.");
             }
             case "reload" -> {
                 plugin.reloadAll();
@@ -265,7 +274,7 @@ public final class AdminCommand implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> out = new ArrayList<>();
         List<String> options;
-        if (args.length == 1) options = List.of("arena", "kit", "yedek", "geriyukle", "elo", "reload");
+        if (args.length == 1) options = List.of("arena", "kit", "yedek", "geriyukle", "elo", "lobi", "reload");
         else if (args.length == 2 && args[0].equalsIgnoreCase("arena"))
             options = List.of("olustur", "spawn", "spawntemizle", "pos1", "pos2", "ac", "kapat", "sil", "tp", "liste");
         else if (args.length == 2 && args[0].equalsIgnoreCase("kit")) options = List.of("olustur", "sil", "liste", "al");

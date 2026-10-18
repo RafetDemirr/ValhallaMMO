@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.UUID;
 
 public final class DuelCommand implements TabExecutor {
-    private static final List<String> SUBS = List.of("kabul", "red", "iptal", "toggle", "elo", "top");
+    private static final List<String> SUBS = List.of("kabul", "red", "iptal", "toggle", "elo", "top", "sira", "ayril", "izle");
     private final FoolDuels plugin;
 
     public DuelCommand(FoolDuels plugin) {
@@ -64,6 +64,35 @@ public final class DuelCommand implements TabExecutor {
             case "red" -> plugin.requests().deny(p, args.length > 1 ? args[1] : null);
             case "iptal" -> plugin.requests().cancelOutgoing(p);
             case "toggle" -> Msg.send(p, plugin.requests().toggle(p.getUniqueId()) ? "toggle-on" : "toggle-off");
+            case "sira" -> {
+                if (args.length < 2) {
+                    StringBuilder sb = new StringBuilder();
+                    for (String k : plugin.queues().keys()) sb.append(sb.isEmpty() ? "" : ", ").append(k).append(" (").append(plugin.queues().size(k)).append(")");
+                    Msg.send(p, "queue.list", "queues", sb.toString());
+                } else if (args[1].equalsIgnoreCase("ayril")) {
+                    if (!plugin.queues().leave(p.getUniqueId(), true)) Msg.send(p, "queue.not-in-queue");
+                } else {
+                    plugin.queues().join(p, args[1]);
+                }
+            }
+            case "izle" -> {
+                if (plugin.matches().inMatch(p.getUniqueId())) {
+                    Msg.send(p, "in-match");
+                } else if (!plugin.lobby().join(p)) {
+                    Msg.send(p, "lobby.not-set");
+                } else {
+                    Msg.send(p, "lobby.joined");
+                }
+            }
+            case "ayril" -> {
+                if (plugin.matches().inMatch(p.getUniqueId())) {
+                    Msg.send(p, "in-match");
+                    return true;
+                }
+                boolean q = plugin.queues().leave(p.getUniqueId(), false);
+                boolean l = plugin.lobby().leave(p);
+                Msg.send(p, q || l ? "lobby.left" : "lobby.not-in-lobby");
+            }
             default -> {
                 Player target = Bukkit.getPlayerExact(args[0]);
                 if (target == null) {
@@ -91,6 +120,10 @@ public final class DuelCommand implements TabExecutor {
         } else if (args.length == 2 && sender instanceof Player p) {
             String sub = args[0].toLowerCase();
             if (sub.equals("kabul") || sub.equals("red")) out.addAll(plugin.requests().incomingNames(p.getUniqueId()));
+            else if (sub.equals("sira")) {
+                out.addAll(plugin.queues().keys());
+                out.add("ayril");
+            }
             else if (sub.equals("elo")) for (Player o : Bukkit.getOnlinePlayers()) out.add(o.getName());
         }
         return out;

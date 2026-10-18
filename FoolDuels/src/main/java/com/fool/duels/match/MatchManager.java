@@ -72,8 +72,9 @@ public final class MatchManager {
         return quitting.contains(id);
     }
 
-    public boolean consumeForceTeleport(UUID id) {
-        return forceTeleport.remove(id);
+    /** True while one of our own teleports for this player is in progress. */
+    public boolean isForcing(UUID id) {
+        return forceTeleport.contains(id);
     }
 
     /** True for players that must not be combat-punished, use blocked commands, etc. */
@@ -120,7 +121,8 @@ public final class MatchManager {
 
         arena.inUse(true);
         Match m = new Match(nextId++, arena, uuids(teamA), uuids(teamB), kit, bet, callback);
-        m.countdown = Math.max(0, plugin.getConfig().getInt("duel.countdown", 5));
+        // Tournament matches get a longer countdown so spectators can place their bets.
+        m.countdown = Math.max(0, plugin.getConfig().getInt(callback != null ? "tournament.countdown" : "duel.countdown", 5));
         matches.add(m);
 
         boolean clearEffects = plugin.getConfig().getBoolean("duel.clear-effects-on-start", true);
@@ -228,6 +230,7 @@ public final class MatchManager {
     private void beginFight(Match m) {
         m.state = Match.State.FIGHT;
         m.fightStartMillis = System.currentTimeMillis();
+        if (m.callback != null) m.callback.onFightStart(m);
         showTitle(m, Msg.get("match-start-title"), net.kyori.adventure.text.Component.empty());
     }
 

@@ -18,6 +18,10 @@ public final class Match {
     /** Called once when a match is decided. winnerTeam is 0, 1 or -1 for a draw/cancel. */
     public interface Callback {
         void onEnd(Match match, int winnerTeam);
+
+        /** The countdown is over and players can fight. */
+        default void onFightStart(Match match) {
+        }
     }
 
     final int id;

@@ -5,6 +5,7 @@ import com.fool.duels.command.AdminCommand;
 import com.fool.duels.command.DuelCommand;
 import com.fool.duels.command.PartyCommand;
 import com.fool.duels.command.TournamentCommand;
+import com.fool.duels.data.RewardStore;
 import com.fool.duels.data.StateStore;
 import com.fool.duels.data.StatsManager;
 import com.fool.duels.duel.RequestManager;
@@ -13,6 +14,8 @@ import com.fool.duels.hook.CombatLogXHook;
 import com.fool.duels.hook.EconomyHook;
 import com.fool.duels.kit.KitManager;
 import com.fool.duels.listener.MatchListener;
+import com.fool.duels.lobby.LobbyManager;
+import com.fool.duels.queue.QueueManager;
 import com.fool.duels.listener.ProtectionListener;
 import com.fool.duels.match.MatchManager;
 import com.fool.duels.party.PartyManager;
@@ -38,6 +41,9 @@ public final class FoolDuels extends JavaPlugin {
     private RequestManager requests;
     private TournamentManager tournament;
     private Menus menus;
+    private LobbyManager lobby;
+    private QueueManager queues;
+    private RewardStore rewards;
     private MatchListener matchListener;
 
     @Override
@@ -63,8 +69,13 @@ public final class FoolDuels extends JavaPlugin {
         kits = new KitManager(this);
         kits.load();
         parties = new PartyManager();
+        lobby = new LobbyManager(this);
+        lobby.load();
+        rewards = new RewardStore(this);
+        rewards.load();
         matches = new MatchManager(this);
         requests = new RequestManager(this);
+        queues = new QueueManager(this);
         tournament = new TournamentManager(this);
         menus = new Menus(this);
 
@@ -79,6 +90,11 @@ public final class FoolDuels extends JavaPlugin {
             combat.setup(this, matches::isProtected, getLogger());
         });
         combat = new CombatLogXHook();
+
+        if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
+            new com.fool.duels.hook.PapiExpansion(this).register();
+            getLogger().info("PlaceholderAPI bağlandı: %foolduels_...%");
+        }
 
         register("duel", new DuelCommand(this));
         register("parti", new PartyCommand(this));
@@ -141,4 +157,7 @@ public final class FoolDuels extends JavaPlugin {
     public RequestManager requests() { return requests; }
     public TournamentManager tournament() { return tournament; }
     public Menus menus() { return menus; }
+    public LobbyManager lobby() { return lobby; }
+    public QueueManager queues() { return queues; }
+    public RewardStore rewards() { return rewards; }
 }

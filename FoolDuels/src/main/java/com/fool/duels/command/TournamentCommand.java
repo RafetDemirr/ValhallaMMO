@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class TournamentCommand implements TabExecutor {
-    private static final List<String> SUBS = List.of("katil", "ayril", "bilgi");
+    private static final List<String> SUBS = List.of("katil", "ayril", "bilgi", "bahis");
     private static final List<String> ADMIN_SUBS = List.of("olustur", "baslat", "iptal", "oduleekle");
     private final FoolDuels plugin;
 
@@ -41,6 +41,17 @@ public final class TournamentCommand implements TabExecutor {
         switch (sub) {
             case "katil" -> plugin.tournament().join(p);
             case "ayril" -> plugin.tournament().leave(p);
+            case "bahis" -> {
+                if (args.length < 3) {
+                    Msg.send(p, "tournament.bet-usage");
+                    return true;
+                }
+                try {
+                    plugin.tournament().bets().place(p, args[1], Double.parseDouble(args[2].replace(",", ".")));
+                } catch (NumberFormatException e) {
+                    Msg.send(p, "tournament.bet-usage");
+                }
+            }
             case "olustur", "baslat", "iptal", "oduleekle" -> {
                 if (!admin) {
                     Msg.send(p, "no-permission");
@@ -48,6 +59,10 @@ public final class TournamentCommand implements TabExecutor {
                 }
                 switch (sub) {
                     case "olustur" -> {
+                        if (args.length == 2) {
+                            plugin.tournament().createFromPreset(p, args[1]);
+                            return true;
+                        }
                         if (args.length < 3) {
                             Msg.sendList(p, "tournament.help-admin");
                             return true;
@@ -68,7 +83,7 @@ public final class TournamentCommand implements TabExecutor {
                             }
                             kit = k.name;
                         }
-                        plugin.tournament().create(p, fee, kit);
+                        plugin.tournament().create(p, fee, kit, null, null);
                     }
                     case "baslat" -> plugin.tournament().start(p);
                     case "iptal" -> plugin.tournament().cancel(p);
@@ -98,6 +113,10 @@ public final class TournamentCommand implements TabExecutor {
         if (args.length == 1) {
             for (String s : SUBS) if (s.startsWith(args[0].toLowerCase())) out.add(s);
             if (admin) for (String s : ADMIN_SUBS) if (s.startsWith(args[0].toLowerCase())) out.add(s);
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("bahis")) {
+            for (String n : plugin.tournament().bets().openTargets()) if (n.toLowerCase().startsWith(args[1].toLowerCase())) out.add(n);
+        } else if (args.length == 2 && admin && args[0].equalsIgnoreCase("olustur")) {
+            out.addAll(plugin.tournament().presets());
         } else if (args.length == 3 && admin && args[0].equalsIgnoreCase("olustur")) {
             out.add("kendi");
             for (KitManager.Kit k : plugin.kits().all()) out.add(k.name);
