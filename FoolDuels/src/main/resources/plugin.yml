@@ -1,0 +1,40 @@
+name: FoolDuels
+version: ${project.version}
+main: com.fool.duels.FoolDuels
+api-version: '1.21'
+description: Bahisli düello, parti (2v2, 3v3...), turnuva ve ELO sistemi.
+softdepend: [Vault, CombatLogX]
+
+commands:
+  duel:
+    description: Düello menüsü ve düello komutları
+    usage: /duel <oyuncu>
+    permission: foolduels.use
+  parti:
+    description: Parti komutları
+    aliases: [party]
+    usage: /parti <davet|kabul|ayril|at|dagit|liste>
+    permission: foolduels.use
+  turnuva:
+    description: Turnuva komutları
+    aliases: [tournament]
+    usage: /turnuva <katil|ayril|bilgi>
+    permission: foolduels.use
+  duelyonet:
+    description: FoolDuels yönetim komutları
+    aliases: [fdadmin]
+    usage: /duelyonet <arena|kit|yedek|geriyukle|elo|reload>
+    permission: foolduels.admin
+
+permissions:
+  foolduels.use:
+    description: Düello, parti ve turnuva komutlarını kullanma
+    default: true
+  foolduels.admin:
+    description: Arena, kit, yedek ve turnuva yönetimi
+    default: op
+    children:
+      foolduels.bypass: true
+  foolduels.bypass:
+    description: Maç sırasında komut engeline ve arena korumasına takılmama
+    default: op

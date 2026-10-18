@@ -1,0 +1,196 @@
+# ==========================================================
+#  FoolDuels - Ayarlar
+#  Mesajlar MiniMessage biçimindedir: <red>, <gold>, <bold> vb.
+# ==========================================================
+
+duel:
+  # Düello isteğinin geçerlilik süresi (saniye)
+  request-timeout: 60
+  # Maç başlamadan önceki geri sayım (saniye). Bu sürede oyuncular hareket edemez ve hasar alamaz.
+  countdown: 5
+  # Bir maçın en uzun süresi (saniye). Süre dolunca normal düelloda berabere biter ve bahisler iade edilir.
+  max-duration: 300
+  # Maç bittikten sonra oyuncular kaç saniye sonra eski yerlerine gönderilsin
+  end-delay: 3
+  # Kendi envanteriyle düelloya izin ver
+  allow-own-inventory: true
+  # Kendi envanter modunda ölen oyuncu eşyalarını korusun mu?
+  #  true  -> eşyalar kimseye düşmez, sadece maç içinde tüketilenler (elma, iksir, ok...) gider
+  #  false -> ölen oyuncunun eşyaları yere düşer, kazanan toplayabilir
+  own-inventory-keep-items-on-death: true
+  # Kendi envanter modunda end-delay yerine kullanılacak süre (eşyalar düşüyorsa toplamak için zaman)
+  own-inventory-loot-delay: 10
+  # Maç başında tüm iksir efektlerini temizle
+  clear-effects-on-start: true
+  # Takım (parti) düellolarında takımların eşit sayıda olması zorunlu mu
+  require-equal-teams: true
+
+bet:
+  # Vault yoksa bahis otomatik kapanır
+  enabled: true
+  min: 0
+  max: 1000000
+  # Menüdeki artır/azalt butonlarının miktarları
+  steps: [10, 100, 1000]
+  # Kazananların ödülünden kesilecek vergi (yüzde)
+  tax-percent: 5
+
+party:
+  max-size: 4
+  invite-timeout: 60
+
+elo:
+  enabled: true
+  default: 1000
+  k-factor: 32
+  # Bahisli düellolar ELO'yu etkilesin mi
+  count-bet-duels: true
+  # Turnuva maçları ELO'yu etkilesin mi
+  count-tournament: true
+
+tournament:
+  # Kazanma payları (yüzde). Birinci, ikinci, ...
+  prizes: [70, 30]
+  # Ödül havuzundan kesilecek vergi (yüzde)
+  tax-percent: 0
+  min-players: 2
+
+backups:
+  # Oyuncu başına saklanacak en fazla yedek sayısı
+  max-per-player: 10
+
+# Maç sırasında kullanılabilecek komutlar. Geri kalan HER ŞEY engellenir.
+# (foolduels.bypass yetkisi olanlar etkilenmez)
+command-whitelist:
+  - duel
+  - parti
+  - party
+  - turnuva
+  - msg
+  - tell
+  - w
+  - r
+  - reply
+
+protection:
+  # Arena bölgesinde (pos1-pos2) blok kırma/koyma engeli
+  block-changes: true
+  # Maçta olmayan oyuncuların aktif arenaya girmesini engelle
+  block-outsiders: true
+  # Maçtaki oyuncu arena bölgesinden çıkarsa doğduğu yere geri ışınla
+  keep-players-inside: true
+  # Kit modunda eşya atmayı engelle
+  block-item-drop-kit: true
+  # Maç sırasında sandık, fıçı, ender sandığı vb. açmayı engelle
+  block-containers: true
+
+messages:
+  prefix: "<dark_gray>[<gold>Düello</gold>]</dark_gray> "
+  no-permission: "<red>Bunun için yetkin yok."
+  player-only: "<red>Bu komut sadece oyun içinden kullanılabilir."
+  player-not-found: "<red>Oyuncu bulunamadı: <white>{player}"
+  not-self: "<red>Kendinle düello yapamazsın."
+  in-match: "<red>Şu an bir maçtasın."
+  target-in-match: "<red><white>{player}</white> şu an bir maçta."
+  target-toggled: "<red><white>{player}</white> düello isteklerini kapatmış."
+  toggle-on: "<green>Düello isteklerini açtın."
+  toggle-off: "<yellow>Düello isteklerini kapattın."
+  not-party-leader: "<red>Partide sadece lider düello isteği gönderebilir."
+  target-not-leader: "<red><white>{player}</white> bir partide ama lider değil. Partinin lideri <white>{leader}</white>."
+  teams-unequal: "<red>Takımlar eşit değil: <white>{a}</white> vs <white>{b}</white>."
+  not-enough-money: "<red><white>{player}</white> bahis için yeterli paraya sahip değil (<white>{amount}</white>)."
+  in-combat: "<red><white>{player}</white> savaşta (CombatLogX). Savaş bitince tekrar dene."
+  request-sent: "<green><white>{player}</white> adlı oyuncuya düello isteği gönderildi."
+  request-received: "<gold><white>{player}</white> sana <yellow>{mode}</yellow> düello isteği gönderdi! <gray>Bahis: <yellow>{bet}</yellow> · Kit: <yellow>{kit}</yellow></gray> <click:run_command:'/duel kabul {player}'><hover:show_text:'<green>Kabul et'><green><bold>[KABUL]</bold></green></hover></click> <click:run_command:'/duel red {player}'><hover:show_text:'<red>Reddet'><red><bold>[RED]</bold></red></hover></click>"
+  request-none: "<red>Bekleyen bir düello isteğin yok."
+  request-expired: "<yellow><white>{player}</white> ile olan düello isteğinin süresi doldu."
+  request-denied: "<red><white>{player}</white> düello isteğini reddetti."
+  request-denied-self: "<yellow>Düello isteğini reddettin."
+  request-cancelled: "<yellow>Gönderdiğin düello isteklerini iptal ettin."
+  no-free-arena: "<red>Şu an boş arena yok, biraz sonra tekrar dene."
+  bet-disabled: "<red>Bahis sistemi kapalı (Vault/ekonomi eklentisi yok)."
+  bet-input: "<yellow>Bahis miktarını sohbete yaz. Vazgeçmek için <white>iptal</white> yaz."
+  bet-invalid: "<red>Geçersiz miktar. <white>{min}</white> ile <white>{max}</white> arasında bir sayı yaz."
+  match-countdown-title: "<gold><bold>{seconds}"
+  match-countdown-subtitle: "<gray>Hazırlan!"
+  match-start-title: "<red><bold>SAVAŞ!"
+  match-start: "<gold>Maç başladı! <gray>Rakipler: <white>{opponents}</white> · Bahis: <yellow>{bet}</yellow> · Kit: <yellow>{kit}</yellow>"
+  match-eliminated: "<red><white>{player}</white> elendi."
+  match-quit: "<red><white>{player}</white> oyundan çıktı ve elendi."
+  match-win: "<green><bold>KAZANDIN!</bold></green> <gray>Ödül: <yellow>{prize}</yellow> · ELO: <yellow>{elo}</yellow> (<green>+{delta}</green>)"
+  match-lose: "<red><bold>KAYBETTİN.</bold></red> <gray>ELO: <yellow>{elo}</yellow> (<red>-{delta}</red>)"
+  match-draw: "<yellow>Süre doldu, maç berabere bitti. Bahisler iade edildi."
+  match-cancelled: "<yellow>Maç iptal edildi. Bahisler iade edildi."
+  command-blocked: "<red>Maç sırasında bu komutu kullanamazsın."
+  container-blocked: "<red>Maç sırasında bunu açamazsın."
+  drop-blocked: "<red>Kit modunda eşya atamazsın."
+  arena-protected: "<red>Bu arena korunuyor."
+  restored: "<green>Envanterin ve durumun geri yüklendi."
+  elo-info: "<gold><white>{player}</white> · ELO: <yellow>{elo}</yellow> · Galibiyet: <green>{wins}</green> · Mağlubiyet: <red>{losses}</red>"
+  elo-top-header: "<gold><bold>ELO Sıralaması"
+  elo-top-line: "<gray>{rank}. <white>{player}</white> - <yellow>{elo}</yellow>"
+  help:
+    - "<gold><bold>Düello Komutları"
+    - "<yellow>/duel <oyuncu></yellow> <gray>- Düello menüsünü açar"
+    - "<yellow>/duel kabul [oyuncu]</yellow> <gray>- İsteği kabul eder"
+    - "<yellow>/duel red [oyuncu]</yellow> <gray>- İsteği reddeder"
+    - "<yellow>/duel iptal</yellow> <gray>- Gönderdiğin istekleri iptal eder"
+    - "<yellow>/duel toggle</yellow> <gray>- İstekleri açar/kapatır"
+    - "<yellow>/duel elo [oyuncu]</yellow> <gray>- ELO bilgisi"
+    - "<yellow>/duel top</yellow> <gray>- ELO sıralaması"
+    - "<yellow>/parti</yellow> <gray>- Parti (2v2, 3v3...) komutları"
+    - "<yellow>/turnuva</yellow> <gray>- Turnuva komutları"
+  party:
+    help:
+      - "<gold><bold>Parti Komutları"
+      - "<yellow>/parti davet <oyuncu></yellow> <gray>- Partiye davet eder"
+      - "<yellow>/parti kabul <oyuncu></yellow> <gray>- Daveti kabul eder"
+      - "<yellow>/parti ayril</yellow> <gray>- Partiden ayrılır"
+      - "<yellow>/parti at <oyuncu></yellow> <gray>- Partiden atar (lider)"
+      - "<yellow>/parti dagit</yellow> <gray>- Partiyi dağıtır (lider)"
+      - "<yellow>/parti liste</yellow> <gray>- Parti üyelerini gösterir"
+    invited: "<green><white>{player}</white> partiye davet edildi."
+    invite-received: "<gold><white>{player}</white> seni partisine davet etti. <click:run_command:'/parti kabul {player}'><green><bold>[KATIL]</bold></green></click>"
+    no-invite: "<red><white>{player}</white> seni partiye davet etmemiş."
+    joined: "<green><white>{player}</white> partiye katıldı."
+    left: "<yellow><white>{player}</white> partiden ayrıldı."
+    kicked: "<yellow><white>{player}</white> partiden atıldı."
+    disbanded: "<yellow>Parti dağıtıldı."
+    full: "<red>Parti dolu (en fazla {max} kişi)."
+    already-in-party: "<red><white>{player}</white> zaten bir partide."
+    not-in-party: "<red>Bir partide değilsin."
+    not-leader: "<red>Bunu sadece parti lideri yapabilir."
+    list: "<gold>Parti ({size}/{max}): <white>{members}"
+  tournament:
+    help:
+      - "<gold><bold>Turnuva Komutları"
+      - "<yellow>/turnuva katil</yellow> <gray>- Açık turnuvaya kayıt olur"
+      - "<yellow>/turnuva ayril</yellow> <gray>- Kaydı iptal eder (başlamadan önce ücret iade edilir)"
+      - "<yellow>/turnuva bilgi</yellow> <gray>- Turnuva durumunu gösterir"
+    help-admin:
+      - "<yellow>/turnuva olustur <ücret> <kit|kendi></yellow> <gray>- Kayıtları açar"
+      - "<yellow>/turnuva baslat</yellow> <gray>- Turnuvayı başlatır"
+      - "<yellow>/turnuva iptal</yellow> <gray>- Turnuvayı iptal eder, ücretleri iade eder"
+      - "<yellow>/turnuva oduleekle <miktar></yellow> <gray>- Ödül havuzuna para ekler"
+    none: "<red>Şu an açık bir turnuva yok."
+    already-exists: "<red>Zaten açık bir turnuva var."
+    opened: "<gold><bold>TURNUVA KAYITLARI AÇILDI!</bold></gold> <gray>Ücret: <yellow>{fee}</yellow> · Kit: <yellow>{kit}</yellow></gray> <click:run_command:'/turnuva katil'><hover:show_text:'<green>Kayıt ol'><green><bold>[KATIL]</bold></green></hover></click>"
+    joined: "<green>Turnuvaya kayıt oldun. <gray>Kayıtlı oyuncu: <white>{count}</white>"
+    joined-broadcast: "<gray><white>{player}</white> turnuvaya katıldı. (<white>{count}</white> kişi · Havuz: <yellow>{pot}</yellow>)"
+    already-joined: "<red>Zaten turnuvaya kayıtlısın."
+    not-joined: "<red>Turnuvaya kayıtlı değilsin."
+    left: "<yellow>Turnuva kaydını iptal ettin, ücretin iade edildi."
+    forfeit: "<yellow>Turnuvadan çekildin."
+    not-registration: "<red>Turnuva kayıtları kapalı."
+    not-enough-players: "<red>Turnuvayı başlatmak için en az {min} oyuncu gerekli."
+    started: "<gold><bold>TURNUVA BAŞLADI!</bold></gold> <gray>{count} oyuncu · Havuz: <yellow>{pot}</yellow>"
+    round: "<gold><bold>{round}. TUR</bold></gold> <gray>· Kalan oyuncu: <white>{count}</white>"
+    bye: "<gray><white>{player}</white> bu turu rakipsiz geçti."
+    match: "<gray>Turnuva maçı: <white>{a}</white> <red>vs</red> <white>{b}</white>"
+    match-result: "<gray>Turnuva: <green>{winner}</green> kazandı, <red>{loser}</red> elendi."
+    forfeit-offline: "<gray><white>{player}</white> çevrimdışı olduğu için hükmen elendi."
+    winner: "<gold><bold>TURNUVA BİTTİ!</bold></gold> <yellow>1. <white>{first}</white> ({prize1})</yellow> <gray>· 2. <white>{second}</white> ({prize2})"
+    cancelled: "<red>Turnuva iptal edildi. Kayıt ücretleri iade edildi."
+    info: "<gold>Turnuva · Durum: <yellow>{state}</yellow> · Oyuncu: <white>{count}</white> · Ücret: <yellow>{fee}</yellow> · Havuz: <yellow>{pot}</yellow> · Kit: <yellow>{kit}</yellow>"
+    prize-added: "<green>Ödül havuzuna <yellow>{amount}</yellow> eklendi."
+    in-tournament: "<red>Turnuva sürerken bunu yapamazsın."
